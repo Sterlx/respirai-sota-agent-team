@@ -1,0 +1,15 @@
+agentscope
+openai
+python-dotenv
+pydantic
+numpy
+pandas
+scikit-learn
+matplotlib
+librosa
+soundfile
+torch
+torchaudio
+tqdm
+pyyaml
+rich
