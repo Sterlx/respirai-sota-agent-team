@@ -1,0 +1,79 @@
+project: RespirAI SOTA Lung Sound Model
+dataset: ICBHI2017
+split: official_60_40
+
+agents:
+  principal_investigator:
+    role: Owns the full research direction.
+    responsibilities:
+      - Keep the team focused on SOTA lung sound classification.
+      - Approve experiment plans.
+      - Prevent scope creep.
+
+  literature_review_agent:
+    role: Finds and summarizes ICBHI2017 SOTA methods.
+    responsibilities:
+      - Search papers and repositories.
+      - Extract model architecture, preprocessing, metrics, and split details.
+      - Produce literature summaries.
+
+  dataset_split_agent:
+    role: Verifies ICBHI2017 official 60/40 split.
+    responsibilities:
+      - Check file structure.
+      - Check patient leakage.
+      - Validate train/test split.
+      - Document labels and class distribution.
+
+  audio_preprocessing_agent:
+    role: Designs lung sound preprocessing.
+    responsibilities:
+      - Resampling.
+      - Filtering.
+      - Segmentation.
+      - Log-mel spectrograms.
+      - Augmentation.
+
+  model_architect_agent:
+    role: Designs candidate models.
+    responsibilities:
+      - Baseline CNN.
+      - CRNN.
+      - AST or spectrogram transformer.
+      - Ensemble strategy.
+      - Edge deployment model.
+
+  training_engineer_agent:
+    role: Writes training code and cluster scripts.
+    responsibilities:
+      - PyTorch training loop.
+      - Config files.
+      - yhbatch scripts.
+      - Checkpointing.
+
+  evaluation_agent:
+    role: Evaluates results.
+    responsibilities:
+      - Sensitivity.
+      - Specificity.
+      - ICBHI score.
+      - F1.
+      - Confusion matrix.
+      - Per-class recall.
+
+  reproducibility_agent:
+    role: Makes experiments repeatable.
+    responsibilities:
+      - Seeds.
+      - Configs.
+      - Git commit tracking.
+      - Environment files.
+      - Experiment logs.
+
+  clinical_safety_agent:
+    role: Reviews clinical risk.
+    responsibilities:
+      - False negative risk.
+      - Medical limitations.
+      - Intended-use wording.
+      - Deployment safety notes.
