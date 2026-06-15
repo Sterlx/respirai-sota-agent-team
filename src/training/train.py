@@ -221,6 +221,9 @@ def log_metrics(logger, phase: str, loss: float, metrics: dict, epoch: int = Non
     else:
         logger.info(f"{phase} Loss: {loss:.4f}")
 
+    if metrics is None:
+        return  # training phase has no metrics
+
     per_class_se = metrics.get("per_class_sensitivity", {})
     per_class_sp = metrics.get("per_class_specificity", {})
 
