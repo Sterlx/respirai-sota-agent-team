@@ -1,0 +1,3 @@
+dataset_root: "C:/Users/thienn/Desktop/Quoc/ICBHI2017"
+output_dir: "outputs"
+checkpoint_dir: "checkpoints"
