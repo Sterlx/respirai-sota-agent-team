@@ -34,32 +34,35 @@ LABEL_TO_INDEX = {"normal": 0, "crackles": 1, "wheezes": 2, "both": 3}
 INDEX_TO_LABEL = {v: k for k, v in LABEL_TO_INDEX.items()}
 
 
-def make_preprocessing_transform(config: dict) -> callable:
-    """Build a waveform→spectrogram transform from config."""
-    audio_cfg = config.get("audio", {})
-    sample_rate = audio_cfg.get("sample_rate", 4000)
-    n_fft = audio_cfg.get("n_fft", 256)
-    hop_length = audio_cfg.get("hop_length", 64)
-    n_mels = audio_cfg.get("n_mels", 32)
-    fmin = audio_cfg.get("fmin", 50)
-    fmax = audio_cfg.get("fmax", 2000)
+class LogMelTransform:
+    """Picklable waveform → log-mel spectrogram transform."""
 
-    mel_transform = torchaudio.transforms.MelSpectrogram(
-        sample_rate=sample_rate,
-        n_fft=n_fft,
-        hop_length=hop_length,
-        n_mels=n_mels,
-        f_min=fmin,
-        f_max=fmax,
-    )
+    def __init__(self, config: dict):
+        audio_cfg = config.get("audio", {})
+        sample_rate = audio_cfg.get("sample_rate", 4000)
+        n_fft = audio_cfg.get("n_fft", 256)
+        hop_length = audio_cfg.get("hop_length", 64)
+        n_mels = audio_cfg.get("n_mels", 32)
+        fmin = audio_cfg.get("fmin", 50)
+        fmax = audio_cfg.get("fmax", 2000)
 
-    def transform(waveform: torch.Tensor) -> torch.Tensor:
-        # waveform: (1, samples) → mel: (1, n_mels, time)
-        mel = mel_transform(waveform)
-        mel = torch.log(mel + 1e-6)  # log-mel
-        return mel
+        self.mel = torchaudio.transforms.MelSpectrogram(
+            sample_rate=sample_rate,
+            n_fft=n_fft,
+            hop_length=hop_length,
+            n_mels=n_mels,
+            f_min=fmin,
+            f_max=fmax,
+        )
 
-    return transform
+    def __call__(self, waveform: torch.Tensor) -> torch.Tensor:
+        mel = self.mel(waveform)
+        return torch.log(mel + 1e-6)
+
+
+def make_preprocessing_transform(config: dict) -> LogMelTransform:
+    """Build a picklable waveform→spectrogram transform."""
+    return LogMelTransform(config)
 
 
 def collate_fn(batch: list) -> tuple[torch.Tensor, torch.Tensor]:
