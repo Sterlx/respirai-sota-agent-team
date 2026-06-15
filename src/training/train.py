@@ -63,16 +63,32 @@ def make_preprocessing_transform(config: dict) -> callable:
     )
 
 
-def collate_fn(batch: list) -> tuple[torch.Tensor, torch.Tensor]:
-    """Collate (waveform, labels_dict) → (stacked_inputs, class_indices)."""
+def collate_fn(batch: list, max_time_frames: int = 0) -> tuple[torch.Tensor, torch.Tensor]:
+    """Collate (waveform, labels_dict) → (stacked_inputs_padded, class_indices)."""
     inputs, label_dicts = zip(*batch)
+
+    # Pad spectrograms to the same time dimension
+    max_time = max(x.shape[-1] for x in inputs)
+    if max_time_frames and max_time > max_time_frames:
+        max_time = max_time_frames
+
+    padded = []
+    for x in inputs:
+        if x.shape[-1] < max_time:
+            pad = torch.zeros(x.shape[0], x.shape[1], max_time - x.shape[-1])
+            x = torch.cat([x, pad], dim=-1)
+        elif x.shape[-1] > max_time:
+            x = x[..., :max_time]
+        padded.append(x)
+
     targets = []
     for ld in label_dicts:
         for label_name, is_active in ld.items():
             if is_active == 1:
                 targets.append(LABEL_TO_INDEX[label_name])
                 break
-    return torch.stack(inputs), torch.tensor(targets)
+
+    return torch.stack(padded), torch.tensor(targets)
 
 
 def setup_logging(log_file: str, console_level: int = logging.INFO) -> logging.Logger:
@@ -287,17 +303,17 @@ def main():
         train_dataset,
         batch_size=config["training"]["batch_size"],
         shuffle=True,
-        num_workers=config["training"].get("num_workers", 4),
+        num_workers=config["training"].get("num_workers", 0),
         pin_memory=True,
-        collate_fn=collate_fn,
+        collate_fn=lambda b: collate_fn(b, config["audio"].get("max_time_frames", 0)),
     )
     val_loader = DataLoader(
         val_dataset,
         batch_size=config["training"]["batch_size"],
         shuffle=False,
-        num_workers=config["training"].get("num_workers", 4),
+        num_workers=config["training"].get("num_workers", 0),
         pin_memory=True,
-        collate_fn=collate_fn,
+        collate_fn=lambda b: collate_fn(b, config["audio"].get("max_time_frames", 0)),
     )
 
     # Training parameters
