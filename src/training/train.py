@@ -37,13 +37,17 @@ INDEX_TO_LABEL = {v: k for k, v in LABEL_TO_INDEX.items()}
 def make_preprocessing_transform(config: dict) -> callable:
     """Build a waveform→spectrogram transform from config."""
     audio_cfg = config.get("audio", {})
-    sample_rate = audio_cfg.get("sample_rate", 16000)
-    n_mels = audio_cfg.get("n_mels", 64)
+    sample_rate = audio_cfg.get("sample_rate", 4000)
+    n_fft = audio_cfg.get("n_fft", 256)
+    hop_length = audio_cfg.get("hop_length", 64)
+    n_mels = audio_cfg.get("n_mels", 32)
     fmin = audio_cfg.get("fmin", 50)
     fmax = audio_cfg.get("fmax", 2000)
 
     mel_transform = torchaudio.transforms.MelSpectrogram(
         sample_rate=sample_rate,
+        n_fft=n_fft,
+        hop_length=hop_length,
         n_mels=n_mels,
         f_min=fmin,
         f_max=fmax,

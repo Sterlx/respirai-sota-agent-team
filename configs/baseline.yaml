@@ -4,14 +4,14 @@ project:
   task: "lung_sound_classification"
 
 data:
-  data_dir: "${ICBHI2017_ROOT}"
+  data_dir: "data"
   split_file: "data/official_split.txt"
-  use_preprocessed: false
 
 audio:
-  sample_rate: 16000
-  duration_seconds: 5
-  n_mels: 64
+  sample_rate: 4000
+  n_fft: 256
+  hop_length: 64
+  n_mels: 32
   fmin: 50
   fmax: 2000
 
