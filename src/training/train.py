@@ -22,11 +22,52 @@ from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import yaml
+import torchaudio
 
 # Add src to path for local imports
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from src.data.icbhi_dataset import ICBHIDataset  # custom dataset class
-from src.evaluation.metrics import compute_classification_metrics  # per-class metrics
+from src.data.icbhi_dataset import ICBHIDataset
+from src.evaluation.metrics import compute_all_metrics
+
+# Label mapping — must match CNNBaseline output order
+LABEL_TO_INDEX = {"normal": 0, "crackles": 1, "wheezes": 2, "both": 3}
+INDEX_TO_LABEL = {v: k for k, v in LABEL_TO_INDEX.items()}
+
+
+def make_preprocessing_transform(config: dict) -> callable:
+    """Build a waveform→spectrogram transform from config."""
+    audio_cfg = config.get("audio", {})
+    sample_rate = audio_cfg.get("sample_rate", 16000)
+    n_mels = audio_cfg.get("n_mels", 64)
+    fmin = audio_cfg.get("fmin", 50)
+    fmax = audio_cfg.get("fmax", 2000)
+
+    mel_transform = torchaudio.transforms.MelSpectrogram(
+        sample_rate=sample_rate,
+        n_mels=n_mels,
+        f_min=fmin,
+        f_max=fmax,
+    )
+
+    def transform(waveform: torch.Tensor) -> torch.Tensor:
+        # waveform: (1, samples) → mel: (1, n_mels, time)
+        mel = mel_transform(waveform)
+        mel = torch.log(mel + 1e-6)  # log-mel
+        return mel
+
+    return transform
+
+
+def collate_fn(batch: list) -> tuple[torch.Tensor, torch.Tensor]:
+    """Collate (waveform, labels_dict) → (stacked_inputs, class_indices)."""
+    inputs, label_dicts = zip(*batch)
+    targets = []
+    for ld in label_dicts:
+        for label_name, is_active in ld.items():
+            if is_active == 1:
+                targets.append(LABEL_TO_INDEX[label_name])
+                break
+    return torch.stack(inputs), torch.tensor(targets)
 
 
 def setup_logging(log_file: str, console_level: int = logging.INFO) -> logging.Logger:
@@ -147,8 +188,8 @@ def validate(
     all_preds = torch.cat(all_preds).numpy()
     all_targets = torch.cat(all_targets).numpy()
 
-    # Use the pre-built metrics function (returns dict with per-class Se, Sp, etc.)
-    metrics = compute_classification_metrics(all_targets, all_preds, num_classes=4)
+    # Use the pre-built metrics function
+    metrics = compute_all_metrics(all_targets, all_preds)
     return avg_loss, metrics
 
 
@@ -159,19 +200,19 @@ def log_metrics(logger, phase: str, loss: float, metrics: dict, epoch: int = Non
     else:
         logger.info(f"{phase} Loss: {loss:.4f}")
 
-    # Log per-class sensitivity and specificity
-    for cls_name in ["normal", "crackle", "wheeze", "both"]:
-        se = metrics.get(f"{cls_name}_sensitivity", "N/A")
-        sp = metrics.get(f"{cls_name}_specificity", "N/A")
-        logger.info(f"  Class {cls_name}: Sensitivity={se:.4f}, Specificity={sp:.4f}")
+    per_class_se = metrics.get("per_class_sensitivity", {})
+    per_class_sp = metrics.get("per_class_specificity", {})
 
-    # Log average scores
-    avg_se = metrics.get("avg_sensitivity", "N/A")
-    avg_sp = metrics.get("avg_specificity", "N/A")
-    icbhi_score = metrics.get("icbhi_score", "N/A")
-    logger.info(f"  Average Sensitivity: {avg_se:.4f}")
-    logger.info(f"  Average Specificity: {avg_sp:.4f}")
-    logger.info(f"  ICBHI Score (avg Se+Sp): {icbhi_score:.4f}")
+    for cls_idx, cls_name in INDEX_TO_LABEL.items():
+        se = per_class_se.get(cls_idx, "N/A")
+        sp = per_class_sp.get(cls_idx, "N/A")
+        se_str = f"{se:.4f}" if isinstance(se, float) else str(se)
+        sp_str = f"{sp:.4f}" if isinstance(sp, float) else str(sp)
+        logger.info(f"  Class {cls_name}: Se={se_str}, Sp={sp_str}")
+
+    icbhi = metrics.get("icbhi_score", "N/A")
+    icbhi_str = f"{icbhi:.4f}" if isinstance(icbhi, float) else str(icbhi)
+    logger.info(f"  ICBHI Score: {icbhi_str}")
 
 
 def save_checkpoint(
@@ -222,19 +263,19 @@ def main():
 
     # Datasets and loaders
     data_config = config["data"]
+    transform = make_preprocessing_transform(config)
+
     train_dataset = ICBHIDataset(
         data_dir=data_config["data_dir"],
         split_file=data_config["split_file"],
         split="train",
-        use_preprocessed=data_config.get("use_preprocessed", False),
-        preprocessed_dir=data_config.get("preprocessed_dir", None),
+        transform=transform,
     )
     val_dataset = ICBHIDataset(
         data_dir=data_config["data_dir"],
         split_file=data_config["split_file"],
         split="test",
-        use_preprocessed=data_config.get("use_preprocessed", False),
-        preprocessed_dir=data_config.get("preprocessed_dir", None),
+        transform=transform,
     )
 
     train_loader = DataLoader(
@@ -243,6 +284,7 @@ def main():
         shuffle=True,
         num_workers=config["training"].get("num_workers", 4),
         pin_memory=True,
+        collate_fn=collate_fn,
     )
     val_loader = DataLoader(
         val_dataset,
@@ -250,6 +292,7 @@ def main():
         shuffle=False,
         num_workers=config["training"].get("num_workers", 4),
         pin_memory=True,
+        collate_fn=collate_fn,
     )
 
     # Training parameters

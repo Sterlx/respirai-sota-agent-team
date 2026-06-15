@@ -6,7 +6,7 @@ venv/
 .env
 
 # Data - do not push datasets to GitHub
-data/
+/data/
 *.wav
 *.mp3
 *.flac

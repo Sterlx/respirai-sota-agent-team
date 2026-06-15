@@ -13,9 +13,11 @@ agents:
   literature_review_agent:
     role: Finds and summarizes ICBHI2017 SOTA methods.
     responsibilities:
-      - Search papers and repositories.
-      - Extract model architecture, preprocessing, metrics, and split details.
-      - Produce literature summaries.
+      - Search arXiv, PubMed, and PapersWithCode for ICBHI2017 papers (2022+).
+      - Search GitHub for open-source ICBHI2017 implementations.
+      - Extract: model architecture, preprocessing pipeline, split method used, per-class Se/Sp, ICBHI score.
+      - Flag papers that used random split (not official patient-wise) — treat their results with caution.
+      - Produce structured literature table with comparable metrics.
 
   dataset_split_agent:
     role: Verifies ICBHI2017 official 60/40 split.
@@ -26,13 +28,24 @@ agents:
       - Document labels and class distribution.
 
   audio_preprocessing_agent:
-    role: Designs lung sound preprocessing.
+    role: Researches and designs the optimal lung sound preprocessing pipeline.
     responsibilities:
-      - Resampling.
-      - Filtering.
-      - Segmentation.
-      - Log-mel spectrograms.
-      - Augmentation.
+      - Research preprocessing choices used by top ICBHI2017 papers.
+      - Experiment with resampling rates, filter banks, and feature representations.
+      - Compare log-mel spectrograms vs. MFCCs vs. raw waveform frontends.
+      - Design respiratory cycle segmentation strategy.
+      - Determine optimal spectrogram parameters (n_fft, hop_length, n_mels).
+      - Document the evidence behind each preprocessing decision.
+
+  augmentation_agent:
+    role: Designs audio augmentations for robust training.
+    responsibilities:
+      - SpecAugment (time and frequency masking).
+      - Mixup and CutMix for audio.
+      - Time stretching and pitch shifting.
+      - Background noise injection (hospital, ambient).
+      - Per-class augmentation balancing for imbalanced classes.
+      - Validate that augmentations do not distort clinical signal.
 
   model_architect_agent:
     role: Designs candidate models.
@@ -41,25 +54,43 @@ agents:
       - CRNN.
       - AST or spectrogram transformer.
       - Ensemble strategy.
-      - Edge deployment model.
 
   training_engineer_agent:
-    role: Writes training code and cluster scripts.
+    role: Writes training code for the two-computer workflow.
     responsibilities:
-      - PyTorch training loop.
-      - Config files.
-      - yhbatch scripts.
-      - Checkpointing.
+      - PyTorch training loop with mixed precision (AMP).
+      - YAML-based config files for every experiment.
+      - Gradient accumulation for large effective batch sizes.
+      - Checkpointing (best, periodic, and last).
+      - Sync scripts for laptop ↔ training computer via Git.
+
+  hpo_agent:
+    role: Designs and runs hyperparameter optimization.
+    responsibilities:
+      - Set up Optuna or Ray Tune for automated HPO sweeps.
+      - Tune learning rate, scheduler, weight decay, batch size.
+      - Search augmentation policy hyperparameters.
+      - Class-weight and loss-function tuning for imbalance.
+      - Early-stopping and pruning criteria.
 
   evaluation_agent:
     role: Evaluates results.
     responsibilities:
-      - Sensitivity.
-      - Specificity.
-      - ICBHI score.
-      - F1.
-      - Confusion matrix.
-      - Per-class recall.
+      - Per-class Sensitivity (wheeze, crackles, both, normal).
+      - Per-class Specificity.
+      - ICBHI official score: average(Se, Sp) per class.
+      - Macro and micro F1.
+      - Confusion matrix (4×4).
+      - ROC-AUC per class.
+      - Error analysis: identify which classes are confused and why.
+
+  experiment_planner_agent:
+    role: Reads evaluation results and proposes the next experiments.
+    responsibilities:
+      - Propose targeted ablation studies based on current results.
+      - Track hypothesis → experiment → result chains.
+      - Prioritize experiments by expected impact on ICBHI score.
+      - Maintain a living experiment roadmap.
 
   reproducibility_agent:
     role: Makes experiments repeatable.
@@ -67,13 +98,28 @@ agents:
       - Seeds.
       - Configs.
       - Git commit tracking.
-      - Environment files.
+      - Environment files (pip freeze / conda env export).
       - Experiment logs.
 
   clinical_safety_agent:
     role: Reviews clinical risk.
     responsibilities:
-      - False negative risk.
-      - Medical limitations.
-      - Intended-use wording.
+      - False negative risk (especially for crackles — often missed).
+      - Medical limitations and disclaimer wording.
+      - Intended-use statement.
       - Deployment safety notes.
+
+workflow:
+  # Information flows between agents in this order:
+  literature_review → principal_investigator     # SOTA landscape report
+  dataset_split → principal_investigator         # Split verification report
+  principal_investigator → model_architect       # Approved architecture direction
+  audio_preprocessing → training_engineer        # Preprocessing pipeline spec
+  augmentation → training_engineer               # Augmentation policy
+  model_architect → training_engineer            # Model spec for implementation
+  training_engineer → evaluation_agent           # Trained model + config
+  evaluation_agent → experiment_planner          # Full metrics report
+  experiment_planner → principal_investigator    # Proposed next experiments
+  experiment_planner → hpo_agent                 # HPO suggestions
+  clinical_safety → principal_investigator       # Safety sign-off before release
+  reproducibility_agent → ALL                    # Enforces standards on every agent
