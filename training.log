@@ -1,0 +1,171 @@
+2026-06-15 16:46:25,033 [INFO] Configuration loaded successfully.
+2026-06-15 16:46:25,054 [INFO] Using device: cuda
+2026-06-15 16:46:25,193 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 16:49:41,335 [INFO] Configuration loaded successfully.
+2026-06-15 16:49:41,353 [INFO] Using device: cuda
+2026-06-15 16:49:41,462 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 16:56:40,674 [INFO] Configuration loaded successfully.
+2026-06-15 16:56:40,697 [INFO] Using device: cuda
+2026-06-15 16:56:40,784 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 16:58:58,288 [INFO] Configuration loaded successfully.
+2026-06-15 16:58:58,305 [INFO] Using device: cuda
+2026-06-15 16:58:58,414 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 17:00:40,505 [INFO] Configuration loaded successfully.
+2026-06-15 17:00:40,515 [INFO] Using device: cuda
+2026-06-15 17:00:40,590 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 17:00:41,419 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 18:46:31,153 [INFO] Configuration loaded successfully.
+2026-06-15 18:46:31,175 [INFO] Using device: cuda
+2026-06-15 18:46:31,270 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 18:46:32,199 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 18:48:01,135 [INFO] Configuration loaded successfully.
+2026-06-15 18:48:01,149 [INFO] Using device: cuda
+2026-06-15 18:48:01,232 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 18:48:02,027 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 18:48:32,362 [INFO] Configuration loaded successfully.
+2026-06-15 18:48:32,373 [INFO] Using device: cuda
+2026-06-15 18:48:32,467 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 18:48:33,268 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 18:50:32,668 [INFO] Configuration loaded successfully.
+2026-06-15 18:50:32,678 [INFO] Using device: cuda
+2026-06-15 18:50:32,759 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 18:50:33,562 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 19:06:47,261 [INFO] Configuration loaded successfully.
+2026-06-15 19:06:47,285 [INFO] Using device: cuda
+2026-06-15 19:06:47,361 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 19:06:48,251 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 19:07:06,295 [INFO] Configuration loaded successfully.
+2026-06-15 19:07:06,300 [INFO] Using device: cuda
+2026-06-15 19:07:06,393 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 19:07:07,229 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 19:12:23,641 [INFO] Configuration loaded successfully.
+2026-06-15 19:12:23,657 [INFO] Using device: cuda
+2026-06-15 19:12:23,766 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 19:12:24,572 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 19:13:54,089 [INFO] Configuration loaded successfully.
+2026-06-15 19:13:54,104 [INFO] Using device: cuda
+2026-06-15 19:13:54,215 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 19:13:55,018 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 19:18:57,085 [INFO] Configuration loaded successfully.
+2026-06-15 19:18:57,104 [INFO] Using device: cuda
+2026-06-15 19:18:57,185 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 19:18:58,003 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 19:20:07,369 [INFO] Configuration loaded successfully.
+2026-06-15 19:20:07,379 [INFO] Using device: cuda
+2026-06-15 19:20:07,451 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 19:20:08,253 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 19:29:39,505 [INFO] Configuration loaded successfully.
+2026-06-15 19:29:39,517 [INFO] Using device: cuda
+2026-06-15 19:29:39,598 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 19:29:40,412 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 19:29:53,097 [INFO] Epoch 1 Train Loss: 1.3274
+2026-06-15 19:32:34,190 [INFO] Configuration loaded successfully.
+2026-06-15 19:32:34,209 [INFO] Using device: cuda
+2026-06-15 19:32:34,285 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 19:32:35,076 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 19:32:41,186 [INFO] Epoch 1 Train Loss: 1.3231
+2026-06-15 19:32:41,186 [INFO] Epoch 1 Validation Loss: 1.3281
+2026-06-15 19:32:41,186 [INFO]   Class normal: Se=0.1260, Sp=0.8858
+2026-06-15 19:32:41,186 [INFO]   Class crackles: Se=0.7941, Sp=0.4245
+2026-06-15 19:32:41,186 [INFO]   Class wheezes: Se=0.0000, Sp=0.9937
+2026-06-15 19:32:41,187 [INFO]   Class both: Se=0.3019, Sp=0.7896
+2026-06-15 19:32:41,187 [INFO]   ICBHI Score: 0.5395
+2026-06-15 19:32:41,215 [INFO] Checkpoint saved: checkpoints\best_model.pth
+2026-06-15 19:32:41,234 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-15 19:32:41,234 [INFO] --- Starting epoch 2/5 ---
+2026-06-15 19:32:47,583 [INFO] Epoch 2 Train Loss: 1.2631
+2026-06-15 19:32:47,583 [INFO] Epoch 2 Validation Loss: 1.3265
+2026-06-15 19:32:47,583 [INFO]   Class normal: Se=0.2598, Sp=0.8307
+2026-06-15 19:32:47,583 [INFO]   Class crackles: Se=0.7353, Sp=0.4531
+2026-06-15 19:32:47,584 [INFO]   Class wheezes: Se=0.0462, Sp=0.9873
+2026-06-15 19:32:47,584 [INFO]   Class both: Se=0.2642, Sp=0.8476
+2026-06-15 19:32:47,584 [INFO]   ICBHI Score: 0.5530
+2026-06-15 19:32:47,598 [INFO] Checkpoint saved: checkpoints\best_model.pth
+2026-06-15 19:32:47,611 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-15 19:32:47,611 [INFO] --- Starting epoch 3/5 ---
+2026-06-15 19:32:55,001 [INFO] Epoch 3 Train Loss: 1.2524
+2026-06-15 19:32:55,001 [INFO] Epoch 3 Validation Loss: 1.3857
+2026-06-15 19:32:55,001 [INFO]   Class normal: Se=0.2598, Sp=0.8307
+2026-06-15 19:32:55,001 [INFO]   Class crackles: Se=0.7500, Sp=0.4367
+2026-06-15 19:32:55,003 [INFO]   Class wheezes: Se=0.0000, Sp=1.0000
+2026-06-15 19:32:55,003 [INFO]   Class both: Se=0.2075, Sp=0.8354
+2026-06-15 19:32:55,003 [INFO]   ICBHI Score: 0.5400
+2026-06-15 19:32:55,003 [INFO] No improvement in ICBHI score for 1 epoch(s).
+2026-06-15 19:32:55,020 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-15 19:32:55,020 [INFO] --- Starting epoch 4/5 ---
+2026-06-15 19:33:02,530 [INFO] Epoch 4 Train Loss: 1.2482
+2026-06-15 19:33:02,530 [INFO] Epoch 4 Validation Loss: 1.3270
+2026-06-15 19:33:02,530 [INFO]   Class normal: Se=0.2362, Sp=0.8268
+2026-06-15 19:33:02,530 [INFO]   Class crackles: Se=0.7574, Sp=0.4245
+2026-06-15 19:33:02,530 [INFO]   Class wheezes: Se=0.2923, Sp=0.8734
+2026-06-15 19:33:02,532 [INFO]   Class both: Se=0.0377, Sp=0.9939
+2026-06-15 19:33:02,532 [INFO]   ICBHI Score: 0.5553
+2026-06-15 19:33:02,548 [INFO] Checkpoint saved: checkpoints\best_model.pth
+2026-06-15 19:33:02,565 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-15 19:33:02,565 [INFO] --- Starting epoch 5/5 ---
+2026-06-15 19:33:10,088 [INFO] Epoch 5 Train Loss: 1.2277
+2026-06-15 19:33:10,088 [INFO] Epoch 5 Validation Loss: 1.3506
+2026-06-15 19:33:10,088 [INFO]   Class normal: Se=0.1811, Sp=0.8504
+2026-06-15 19:33:10,088 [INFO]   Class crackles: Se=0.7868, Sp=0.3796
+2026-06-15 19:33:10,088 [INFO]   Class wheezes: Se=0.0462, Sp=0.9842
+2026-06-15 19:33:10,088 [INFO]   Class both: Se=0.1887, Sp=0.8689
+2026-06-15 19:33:10,093 [INFO]   ICBHI Score: 0.5357
+2026-06-15 19:33:10,093 [INFO] No improvement in ICBHI score for 1 epoch(s).
+2026-06-15 19:33:10,105 [INFO] Checkpoint saved: checkpoints\epoch_5.pth
+2026-06-15 19:33:10,129 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-15 19:33:10,129 [INFO] Training completed.
+2026-06-15 19:34:12,686 [INFO] Configuration loaded successfully.
+2026-06-15 19:34:12,699 [INFO] Using device: cuda
+2026-06-15 19:34:12,782 [INFO] Model cnn_baseline initialized with 4 classes.
+2026-06-15 19:34:13,586 [INFO] --- Starting epoch 1/5 ---
+2026-06-15 19:34:19,702 [INFO] Epoch 1 Train Loss: 1.3464
+2026-06-15 19:34:19,703 [INFO] Epoch 1 Validation Loss: 1.3468
+2026-06-15 19:34:19,703 [INFO]   Class normal: Se=0.2598, Sp=0.8031
+2026-06-15 19:34:19,703 [INFO]   Class crackles: Se=0.7059, Sp=0.5265
+2026-06-15 19:34:19,703 [INFO]   Class wheezes: Se=0.1385, Sp=0.9304
+2026-06-15 19:34:19,703 [INFO]   Class both: Se=0.2264, Sp=0.8689
+2026-06-15 19:34:19,704 [INFO]   ICBHI Score: 0.5574
+2026-06-15 19:34:19,719 [INFO] Checkpoint saved: checkpoints\best_model.pth
+2026-06-15 19:34:19,734 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-15 19:34:19,734 [INFO] --- Starting epoch 2/5 ---
+2026-06-15 19:34:26,941 [INFO] Epoch 2 Train Loss: 1.2656
+2026-06-15 19:34:26,941 [INFO] Epoch 2 Validation Loss: 1.3036
+2026-06-15 19:34:26,941 [INFO]   Class normal: Se=0.2913, Sp=0.7953
+2026-06-15 19:34:26,941 [INFO]   Class crackles: Se=0.7426, Sp=0.4408
+2026-06-15 19:34:26,941 [INFO]   Class wheezes: Se=0.2462, Sp=0.8797
+2026-06-15 19:34:26,944 [INFO]   Class both: Se=0.0000, Sp=1.0000
+2026-06-15 19:34:26,944 [INFO]   ICBHI Score: 0.5495
+2026-06-15 19:34:26,944 [INFO] No improvement in ICBHI score for 1 epoch(s).
+2026-06-15 19:34:26,959 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-15 19:34:26,959 [INFO] --- Starting epoch 3/5 ---
+2026-06-15 19:34:34,118 [INFO] Epoch 3 Train Loss: 1.2600
+2026-06-15 19:34:34,118 [INFO] Epoch 3 Validation Loss: 1.3900
+2026-06-15 19:34:34,120 [INFO]   Class normal: Se=0.2598, Sp=0.8583
+2026-06-15 19:34:34,120 [INFO]   Class crackles: Se=0.7353, Sp=0.4327
+2026-06-15 19:34:34,120 [INFO]   Class wheezes: Se=0.0154, Sp=1.0000
+2026-06-15 19:34:34,120 [INFO]   Class both: Se=0.2075, Sp=0.8140
+2026-06-15 19:34:34,120 [INFO]   ICBHI Score: 0.5404
+2026-06-15 19:34:34,120 [INFO] No improvement in ICBHI score for 2 epoch(s).
+2026-06-15 19:34:34,139 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-15 19:34:34,139 [INFO] --- Starting epoch 4/5 ---
+2026-06-15 19:34:41,718 [INFO] Epoch 4 Train Loss: 1.2422
+2026-06-15 19:34:41,718 [INFO] Epoch 4 Validation Loss: 1.3498
+2026-06-15 19:34:41,718 [INFO]   Class normal: Se=0.1811, Sp=0.8346
+2026-06-15 19:34:41,718 [INFO]   Class crackles: Se=0.7941, Sp=0.4245
+2026-06-15 19:34:41,718 [INFO]   Class wheezes: Se=0.1231, Sp=0.9146
+2026-06-15 19:34:41,718 [INFO]   Class both: Se=0.1132, Sp=0.9207
+2026-06-15 19:34:41,718 [INFO]   ICBHI Score: 0.5382
+2026-06-15 19:34:41,719 [INFO] No improvement in ICBHI score for 3 epoch(s).
+2026-06-15 19:34:41,736 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-15 19:34:41,736 [INFO] --- Starting epoch 5/5 ---
+2026-06-15 19:34:49,185 [INFO] Epoch 5 Train Loss: 1.2145
+2026-06-15 19:34:49,185 [INFO] Epoch 5 Validation Loss: 1.3899
+2026-06-15 19:34:49,185 [INFO]   Class normal: Se=0.2677, Sp=0.8189
+2026-06-15 19:34:49,185 [INFO]   Class crackles: Se=0.7353, Sp=0.4490
+2026-06-15 19:34:49,185 [INFO]   Class wheezes: Se=0.0769, Sp=0.9715
+2026-06-15 19:34:49,188 [INFO]   Class both: Se=0.1698, Sp=0.8689
+2026-06-15 19:34:49,188 [INFO]   ICBHI Score: 0.5448
+2026-06-15 19:34:49,188 [INFO] No improvement in ICBHI score for 4 epoch(s).
+2026-06-15 19:34:49,205 [INFO] Checkpoint saved: checkpoints\epoch_5.pth
+2026-06-15 19:34:49,224 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-15 19:34:49,224 [INFO] Training completed.
