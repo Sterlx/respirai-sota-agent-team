@@ -238,6 +238,10 @@ def compute_all_metrics(
     }
 
 
+# Alias used by train.py
+compute_classification_metrics = compute_all_metrics
+
+
 # ----------------------------------------------------------------------
 # Simple test if run as main
 if __name__ == "__main__":
