@@ -18,7 +18,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import yaml
@@ -95,7 +95,7 @@ def train_one_epoch(
         inputs = inputs.to(device, non_blocking=True)
         targets = targets.to(device, non_blocking=True)
 
-        with autocast():
+        with autocast("cuda"):
             outputs = model(inputs)
             loss = criterion(outputs, targets) / accumulation_steps
 
@@ -134,7 +134,7 @@ def validate(
             inputs = inputs.to(device, non_blocking=True)
             targets = targets.to(device, non_blocking=True)
 
-            with autocast():
+            with autocast("cuda"):
                 outputs = model(inputs)
                 loss = criterion(outputs, targets)
 
@@ -218,7 +218,7 @@ def main():
     criterion = nn.CrossEntropyLoss()
 
     # Mixed precision scaler
-    scaler = GradScaler(enabled=config["training"].get("use_amp", True))
+    scaler = GradScaler("cuda", enabled=config["training"].get("use_amp", True))
 
     # Datasets and loaders
     data_config = config["data"]

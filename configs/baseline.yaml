@@ -3,6 +3,11 @@ project:
   split: "official_60_40"
   task: "lung_sound_classification"
 
+data:
+  data_dir: "${ICBHI2017_ROOT}"
+  split_file: "data/official_split.txt"
+  use_preprocessed: false
+
 audio:
   sample_rate: 16000
   duration_seconds: 5
@@ -15,8 +20,10 @@ training:
   batch_size: 16
   epochs: 5
   learning_rate: 0.0001
+  weight_decay: 0.0001
   num_workers: 2
   device: "cuda"
+  use_amp: true
 
 model:
   name: "cnn_baseline"
