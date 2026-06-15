@@ -35,24 +35,14 @@ INDEX_TO_LABEL = {v: k for k, v in LABEL_TO_INDEX.items()}
 
 
 class LogMelTransform:
-    """Picklable waveform → log-mel spectrogram transform."""
+    """Pickleable waveform→log-mel spectrogram transform for DataLoader workers."""
 
-    def __init__(self, config: dict):
-        audio_cfg = config.get("audio", {})
-        sample_rate = audio_cfg.get("sample_rate", 4000)
-        n_fft = audio_cfg.get("n_fft", 256)
-        hop_length = audio_cfg.get("hop_length", 64)
-        n_mels = audio_cfg.get("n_mels", 32)
-        fmin = audio_cfg.get("fmin", 50)
-        fmax = audio_cfg.get("fmax", 2000)
-
+    def __init__(self, sample_rate: int = 4000, n_fft: int = 256,
+                 hop_length: int = 64, n_mels: int = 32,
+                 f_min: float = 50, f_max: float = 2000):
         self.mel = torchaudio.transforms.MelSpectrogram(
-            sample_rate=sample_rate,
-            n_fft=n_fft,
-            hop_length=hop_length,
-            n_mels=n_mels,
-            f_min=fmin,
-            f_max=fmax,
+            sample_rate=sample_rate, n_fft=n_fft, hop_length=hop_length,
+            n_mels=n_mels, f_min=f_min, f_max=f_max,
         )
 
     def __call__(self, waveform: torch.Tensor) -> torch.Tensor:
@@ -60,9 +50,17 @@ class LogMelTransform:
         return torch.log(mel + 1e-6)
 
 
-def make_preprocessing_transform(config: dict) -> LogMelTransform:
-    """Build a picklable waveform→spectrogram transform."""
-    return LogMelTransform(config)
+def make_preprocessing_transform(config: dict) -> callable:
+    """Build a waveform→spectrogram transform from config."""
+    audio_cfg = config.get("audio", {})
+    return LogMelTransform(
+        sample_rate=audio_cfg.get("sample_rate", 4000),
+        n_fft=audio_cfg.get("n_fft", 256),
+        hop_length=audio_cfg.get("hop_length", 64),
+        n_mels=audio_cfg.get("n_mels", 32),
+        f_min=audio_cfg.get("fmin", 50),
+        f_max=audio_cfg.get("fmax", 2000),
+    )
 
 
 def collate_fn(batch: list) -> tuple[torch.Tensor, torch.Tensor]:
