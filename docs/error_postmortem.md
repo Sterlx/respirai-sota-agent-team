@@ -23,6 +23,7 @@
 | 11 | `ImportError: No module named 'torchcodec'` → FFmpeg DLLs missing | 🟡 Missing dep | `icbhi_dataset.py` |
 | 12 | `torch.stack` expects equal-size tensors (variable spectrogram length) | 🔴 Cross-file | `train.py` collate_fn |
 | 13 | `AttributeError: 'NoneType' object has no attribute 'get'` — training phase passes `None` metrics to `log_metrics` | 🔴 Cross-file | `train.py` → `log_metrics()` |
+| 14 | `preprocessing.py` and `augmentation.py` completely unused by `train.py` — agents created them independently, nobody wired them in | 🔴 Cross-file | `train.py` → `preprocessing.py`, `augmentation.py` |
 
 ---
 
@@ -30,9 +31,9 @@
 
 These 13 errors fall into exactly **three root causes**. None are unique — they repeat the same structural flaw.
 
-### Root Cause 1: No Interface Contract Between Agents (🔴 — 5 errors)
+### Root Cause 1: No Interface Contract Between Agents (🔴 — 6 errors)
 
-**Errors:** #4, #5, #7, #12, #13
+**Errors:** #4, #5, #7, #12, #13, #14
 
 Every agent writes their file in isolation with no shared contract. Agent A decides on a function signature, Agent B calls it with different arguments, nobody checks.
 
@@ -109,9 +110,9 @@ A single `python -c "import ..."` before any agent runs would catch API misuse. 
 ## Error Distribution by Type
 
 ```
-🔴 Cross-file mismatch:    5 errors (38%)  ← code_integration_agent will catch all
-🟡 Environment gap:        5 errors (38%)  ← partial fix, needs env manifest
-🔵 API/runner misuse:      3 errors (24%)  ← caught by smoke test, not in agent output
+🔴 Cross-file mismatch:    6 errors (43%)  ← code_integration_agent will catch all
+🟡 Environment gap:        5 errors (36%)  ← partial fix, needs env manifest
+🔵 API/runner misuse:      3 errors (21%)  ← caught by smoke test, not in agent output
 ```
 
 ---

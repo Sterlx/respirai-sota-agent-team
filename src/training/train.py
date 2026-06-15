@@ -22,7 +22,6 @@ from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import yaml
-import torchaudio
 
 # Add src to path for local imports
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -34,33 +33,53 @@ LABEL_TO_INDEX = {"normal": 0, "crackles": 1, "wheezes": 2, "both": 3}
 INDEX_TO_LABEL = {v: k for k, v in LABEL_TO_INDEX.items()}
 
 
-class LogMelTransform:
-    """Pickleable waveform→log-mel spectrogram transform for DataLoader workers."""
-
-    def __init__(self, sample_rate: int = 4000, n_fft: int = 256,
-                 hop_length: int = 64, n_mels: int = 32,
-                 f_min: float = 50, f_max: float = 2000):
-        self.mel = torchaudio.transforms.MelSpectrogram(
-            sample_rate=sample_rate, n_fft=n_fft, hop_length=hop_length,
-            n_mels=n_mels, f_min=f_min, f_max=f_max,
-        )
-
-    def __call__(self, waveform: torch.Tensor) -> torch.Tensor:
-        mel = self.mel(waveform)
-        return torch.log(mel + 1e-6)
-
-
 def make_preprocessing_transform(config: dict) -> callable:
-    """Build a waveform→spectrogram transform from config."""
+    """Build a waveform→spectrogram transform using src/audio/preprocessing.py
+    and optionally src/audio/augmentation.py."""
+    from src.audio.preprocessing import log_mel_spectrogram
+    from src.audio.augmentation import SpecAugment
+
     audio_cfg = config.get("audio", {})
-    return LogMelTransform(
-        sample_rate=audio_cfg.get("sample_rate", 4000),
-        n_fft=audio_cfg.get("n_fft", 256),
-        hop_length=audio_cfg.get("hop_length", 64),
-        n_mels=audio_cfg.get("n_mels", 32),
-        f_min=audio_cfg.get("fmin", 50),
-        f_max=audio_cfg.get("fmax", 2000),
-    )
+    sample_rate = audio_cfg.get("sample_rate", 4000)
+    n_fft = audio_cfg.get("n_fft", 256)
+    hop_length = audio_cfg.get("hop_length", 64)
+    n_mels = audio_cfg.get("n_mels", 32)
+    f_min = audio_cfg.get("fmin", 50)
+    f_max = audio_cfg.get("fmax", 2000)
+    use_augment = audio_cfg.get("augmentation", False)
+
+    class PreprocessingPipeline:
+        """Composable pipeline using src/audio modules."""
+
+        def __init__(self):
+            self.sample_rate = sample_rate
+            self.n_fft = n_fft
+            self.hop_length = hop_length
+            self.n_mels = n_mels
+            self.f_min = f_min
+            self.f_max = f_max
+            self.use_augment = use_augment
+            if use_augment:
+                self.augment = SpecAugment(
+                    freq_mask_param=max(1, n_mels // 8),
+                    time_mask_param=20,
+                )
+
+        def __call__(self, waveform: torch.Tensor) -> torch.Tensor:
+            # waveform: (1, samples)
+            mel = log_mel_spectrogram(
+                waveform, self.sample_rate,
+                n_fft=self.n_fft, hop_length=self.hop_length,
+                n_mels=self.n_mels, f_min=self.f_min, f_max=self.f_max,
+            )
+            # Ensure output is (1, n_mels, time)
+            if mel.dim() == 2:
+                mel = mel.unsqueeze(0)
+            if self.use_augment:
+                mel = self.augment(mel)
+            return mel
+
+    return PreprocessingPipeline()
 
 
 def collate_fn(batch: list, max_time_frames: int = 0) -> tuple[torch.Tensor, torch.Tensor]:
@@ -396,6 +415,18 @@ def main():
             break
 
     logger.info("Training completed.")
+
+    # Log experiment to tracker
+    from src.evaluation.experiment_tracker import ExperimentTracker
+    tracker = ExperimentTracker(
+        log_file=config["training"].get("experiment_log", "experiments.jsonl")
+    )
+    tracker.log_experiment(
+        config=config,
+        metrics={"best_icbhi_score": best_metric, "epochs_completed": epoch},
+        name=config["model"]["name"],
+    )
+    logger.info(f"Experiment logged to {tracker.log_file}")
 
 
 if __name__ == "__main__":
