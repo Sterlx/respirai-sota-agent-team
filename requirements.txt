@@ -8,8 +8,6 @@ scikit-learn
 matplotlib
 librosa
 soundfile
-torch
-torchaudio
 tqdm
 pyyaml
 rich
