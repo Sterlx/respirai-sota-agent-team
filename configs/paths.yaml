@@ -1,3 +1,7 @@
-dataset_root: "C:/Users/thienn/Desktop/Quoc/ICBHI2017"
+# Paths configuration for RespirAI
+# Use environment variable ICBHI2017_ROOT to point to the dataset.
+# Fallback for local development only.
+
+dataset_root: "${ICBHI2017_ROOT}"
 output_dir: "outputs"
 checkpoint_dir: "checkpoints"
