@@ -14,7 +14,7 @@ Provides ``ICBHIDataset``, a :class:`torch.utils.data.Dataset` subclass that:
 1. Reads the official patient-wise train/test split from *split_file*.
 2. Filters recordings belonging to the requested split (``"train"`` or
    ``"test"``).
-3. Loads the corresponding ``.wav`` file with :func:`torchaudio.load`.
+3. Loads the corresponding ``.wav`` file with ``soundfile`` (avoids FFmpeg dependency).
 4. Parses the annotation ``.txt`` file to determine the lung-sound label:
    ``"normal"``, ``"crackles"``, ``"wheezes"``, or ``"both"``.
 5. Returns a tuple ``(waveform, labels_dict)`` where *labels_dict* is a
@@ -36,11 +36,12 @@ Usage example::
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Dict, Optional, Union
 
 import torch
-import torchaudio
+import numpy as np
 
 # Reuse the verified helpers from the official split script
 from .official_split import determine_label, parse_split_file
@@ -114,8 +115,17 @@ class ICBHIDataset(torch.utils.data.Dataset):
         wav_path = self.audio_dir / f"{filename}.wav"
         if not wav_path.exists():
             raise FileNotFoundError(f"Audio file missing: {wav_path}")
-        # torchaudio.load returns (channels, samples)
-        waveform, sample_rate = torchaudio.load(wav_path)
+
+        # Use soundfile to avoid torchcodec/FFmpeg dependency on Windows.
+        # soundfile is already in requirements.txt.
+        import soundfile as sf
+        audio_np, sample_rate = sf.read(str(wav_path), dtype="float32")
+        # soundfile returns (samples,) or (samples, channels); convert to (1, samples)
+        if audio_np.ndim == 1:
+            audio_np = audio_np[np.newaxis, :]
+        else:
+            audio_np = audio_np.T  # (samples, channels) → (channels, samples)
+        waveform = torch.from_numpy(audio_np)
 
         # Convert to mono by averaging channels (lung sounds are usually mono)
         if waveform.size(0) > 1:

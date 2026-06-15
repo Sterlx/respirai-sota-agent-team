@@ -325,6 +325,53 @@ Rules:
 - Each experiment record includes: timestamp, git commit, config snapshot, metrics dict.
 """,
     },
+    "code_integration_agent": {
+        "role": "Code Integration Agent — validates cross-file compatibility before code leaves the laptop.",
+        "instructions": """
+You are the Code Integration Agent for RespirAI.
+
+You are a GATEKEEPER. After all agents create their files, you validate that
+they work together. You check and report — you do NOT write code yourself.
+
+Run these 6 checks on the files provided to you:
+
+1. IMPORT EXISTENCE: For every `from src.X import Y`, does Y actually exist in X?
+   Report: FILE:LINE → "import Y from X → FOUND" or "NOT FOUND"
+
+2. CALL SIGNATURE MATCH: For every cross-file call `Foo(a=1, b=2)`, does
+   Foo.__init__ or def Foo accept a and b?
+   Report: FILE:LINE → "Foo(a=1, b=2) → MATCH" or "MISMATCH: Foo accepts (x, y)"
+
+3. CONFIG KEY MAP: For every `config["key"]` access in code, does
+   configs/baseline.yaml contain "key"?
+   Report: FILE:LINE → "config['key'] → FOUND in YAML" or "MISSING from YAML"
+
+4. LABEL FORMAT CHAIN: Trace labels through:
+   ICBHIDataset → {"normal":0/1, "crackles":0/1, "wheezes":0/1, "both":0/1}
+   → collate_fn → class index 0-3
+   → CNNBaseline → output logit order [normal, crackles, wheezes, both]
+   → compute_all_metrics → expects class indices 0-3
+   Report any mismatch in label mapping or order.
+
+5. PICKLE SAFETY: Are any DataLoader transforms defined as local lambdas
+   or closures (non-pickleable)? Flag them.
+
+6. DEPENDENCY AUDIT: Compare all `import X` statements against
+   requirements.txt. Report any missing packages.
+
+Output format for each check:
+   PASS: <check name> — all clear
+   FAIL: <check name>
+     FILE:LINE — <specific error>
+     FILE:LINE — <specific error>
+
+At the end, give a single verdict: ALL_PASS or FAILS_FOUND.
+
+If you find failures, include EXACT instructions for which agent should fix what:
+   "dataset_split_agent: add parameter X to ICBHIDataset.__init__"
+   "training_engineer_agent: remove call to use_preprocessed, not in signature"
+""",
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -582,6 +629,183 @@ General project rules:
 
 
 # ---------------------------------------------------------------------------
+# Code integration check + auto-fix loop
+# ---------------------------------------------------------------------------
+
+MAX_FIX_ROUNDS = 3
+
+
+def _read_file_snippet(rel_path: str, max_lines: int = 60) -> str:
+    """Read the first N lines of a source file for the checker."""
+    full_path = ROOT / rel_path
+    if not full_path.exists():
+        return f"[FILE NOT FOUND: {rel_path}]"
+    lines = full_path.read_text(encoding="utf-8").splitlines()
+    snippet = "\n".join(lines[:max_lines])
+    if len(lines) > max_lines:
+        snippet += f"\n... ({len(lines) - max_lines} more lines)"
+    return snippet
+
+
+def _build_checker_task(results: list[dict]) -> str:
+    """Build the task prompt for the code integration agent."""
+    files_section_parts = []
+    for r in results:
+        snippet = _read_file_snippet(r["file"], max_lines=80)
+        files_section_parts.append(
+            f"\n=== FILE: {r['file']} (by {r['agent']}) ===\n{snippet}"
+        )
+
+    config_snippet = _read_file_snippet("configs/baseline.yaml", max_lines=50)
+    reqs_snippet = _read_file_snippet("requirements.txt", max_lines=30)
+
+    return f"""
+Run your 6 cross-file compatibility checks on these files.
+
+=== ALL SOURCE FILES ===
+{chr(10).join(files_section_parts)}
+
+=== CONFIG ===
+{config_snippet}
+
+=== REQUIREMENTS ===
+{reqs_snippet}
+
+Output your structured PASS/FAIL report with exact FILE:LINE references.
+End with a single verdict: ALL_PASS or FAILS_FOUND.
+If FAILS_FOUND, include fix instructions targeting specific agents:
+  "agent_name: fix instruction here"
+"""
+
+
+def _parse_fix_instructions(report: str) -> dict[str, str]:
+    """Parse the checker report to extract per-agent fix instructions."""
+    fixes: dict[str, str] = {}
+    for line in report.splitlines():
+        for agent_key in AGENT_PROMPTS:
+            if line.strip().startswith(agent_key + ":"):
+                instruction = line.split(":", 1)[1].strip()
+                if agent_key not in fixes:
+                    fixes[agent_key] = instruction
+                else:
+                    fixes[agent_key] += "; " + instruction
+                break
+    return fixes
+
+
+async def run_code_integration_check(
+    model: OpenAIChatModel,
+    results: list[dict],
+    team_spec: str,
+    phase2_prompt: str,
+) -> tuple[bool, str, dict[str, str]]:
+    """Run the code integration agent. Returns (all_pass, report, fix_map)."""
+    print(f"\n{'='*60}")
+    print("  CODE INTEGRATION CHECK — validating cross-file compatibility")
+    print(f"{'='*60}\n")
+
+    skills = find_relevant_skills(
+        query="Python static analysis import graph cross-module contract "
+              "validation API signature checking pip dependency audit "
+              "DataLoader pickle safety",
+        max_results=4,
+        excerpt_chars=2500,
+    )
+
+    checker = Agent(
+        name="RespirAI_Code_Integration",
+        system_prompt=build_agent_system_prompt(
+            agent_name="code_integration_agent",
+            team_spec=team_spec,
+            phase2_prompt=phase2_prompt,
+            relevant_skills=skills,
+        ),
+        model=model,
+    )
+
+    task = _build_checker_task(results)
+    report = await ask(checker, task, label="Code Integration Check")
+
+    all_pass = "ALL_PASS" in report and "FAILS_FOUND" not in report
+    fix_map = _parse_fix_instructions(report) if not all_pass else {}
+
+    if all_pass:
+        print("  ✓ ALL CHECKS PASSED\n")
+    else:
+        fail_count = report.count("FAIL:")
+        print(f"  ✗ {fail_count} failure(s) found.")
+        print(f"  Agents to fix: {list(fix_map.keys())}\n")
+
+    return all_pass, report, fix_map
+
+
+async def auto_fix_loop(
+    model: OpenAIChatModel,
+    agents: dict[str, Agent],
+    results: list[dict],
+    fix_map: dict[str, str],
+    team_spec: str,
+    phase2_prompt: str,
+) -> list[dict]:
+    """Feed failures back to source agents, regenerate, re-check. Max 3 rounds."""
+    for round_num in range(1, MAX_FIX_ROUNDS + 1):
+        print(f"\n  --- Auto-Fix Round {round_num}/{MAX_FIX_ROUNDS} ---\n")
+
+        files_to_fix = [
+            (fp, ag, sq) for (fp, ag, sq) in FILE_ASSIGNMENTS if ag in fix_map
+        ]
+
+        for file_path, agent_name, skill_query in files_to_fix:
+            agent = agents[agent_name]
+            fix_instruction = fix_map.get(agent_name, "Fix cross-file compatibility.")
+
+            per_file_skills = find_relevant_skills(
+                query=f"{skill_query} {file_path} fix {fix_instruction}",
+                max_results=3,
+                excerpt_chars=2000,
+            )
+
+            fix_task = f"""
+FIX FILE: {file_path}
+
+ISSUE TO FIX (from Code Integration Agent):
+{fix_instruction}
+
+Output the COMPLETE corrected source code in a ```python (or ```markdown) block.
+Do NOT use placeholders. Fix ONLY the issues listed above.
+"""
+
+            full_task = build_file_creation_task(file_path, per_file_skills)
+            full_task += f"\n\n=== FIX INSTRUCTIONS ===\n{fix_task}"
+
+            label = f"Fix Round {round_num}: {file_path} ({agent_name})"
+            response = await ask(agent, full_task, label=label)
+
+            code = extract_code_block(response, file_path)
+            save_file(file_path, code)
+
+            for r in results:
+                if r["file"] == file_path:
+                    r["lines"] = code.count("\n") + 1
+                    r["cited_skills"] = "Skill source:" in code or "skill source:" in code
+                    break
+
+            print(f"  ✓ Re-saved {file_path}\n")
+
+        all_pass, report, fix_map = await run_code_integration_check(
+            model, results, team_spec, phase2_prompt,
+        )
+
+        if all_pass:
+            print("  ✓ All issues resolved.\n")
+            break
+    else:
+        print(f"  ⚠ Max rounds ({MAX_FIX_ROUNDS}) reached. Some issues may remain.\n")
+
+    return results
+
+
+# ---------------------------------------------------------------------------
 # Main orchestration
 # ---------------------------------------------------------------------------
 
@@ -699,6 +923,16 @@ async def main():
         citation_note = "✓ cited skills" if has_citation else "⚠ no skill citation"
         print(f"  ✓ Saved {code.count(chr(10)) + 1} lines to {saved_path}  ({citation_note})\n")
 
+    # --- CODE INTEGRATION GATE ---
+    all_pass, check_report, fix_map = await run_code_integration_check(
+        model, results, team_spec, phase2_prompt,
+    )
+
+    if not all_pass and fix_map:
+        results = await auto_fix_loop(
+            model, agents, results, fix_map, team_spec, phase2_prompt,
+        )
+
     # --- PI Review pass ---
     print(f"\n{'='*60}")
     print("  PI REVIEW — Principal Investigator checks all outputs")
@@ -715,6 +949,9 @@ You are the Principal Investigator for RespirAI.
 You just coordinated the agent team to create the following files:
 
 {file_list}
+
+CODE INTEGRATION GATE RESULT:
+{check_report[:3000]}
 
 Your task: review the output. Answer these questions:
 1. Are there any gaps or missing files?

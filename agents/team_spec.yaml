@@ -101,6 +101,17 @@ agents:
       - Environment files (pip freeze / conda env export).
       - Experiment logs.
 
+  code_integration_agent:
+    role: Validates cross-file compatibility before code leaves the laptop.
+    responsibilities:
+      - Verify every import from another src/ file resolves to an existing symbol.
+      - Check that function/class call signatures match across files.
+      - Confirm config keys accessed in code exist in configs/baseline.yaml.
+      - Audit label format chain: dataset → collate → model → metrics.
+      - Check pickle safety for DataLoader transforms.
+      - Flag hardcoded paths or missing pip dependencies.
+      - Trigger auto-fix loop: feed failures back to source agents, re-check (max 3 rounds).
+
   clinical_safety_agent:
     role: Reviews clinical risk.
     responsibilities:
@@ -123,3 +134,7 @@ workflow:
   experiment_planner → hpo_agent                 # HPO suggestions
   clinical_safety → principal_investigator       # Safety sign-off before release
   reproducibility_agent → ALL                    # Enforces standards on every agent
+
+  # Gate: code_integration_agent runs AFTER all files are created,
+  # BEFORE PI review. Failures trigger auto-fix loop (max 3 rounds).
+  ALL → code_integration_agent → principal_investigator
