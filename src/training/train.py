@@ -139,17 +139,23 @@ def load_config(config_path: str) -> dict:
 
 
 def get_model(config: dict) -> nn.Module:
-    """
-    Build the model specified in config.
-    Currently only supports CNN baseline from src.models.cnn_baseline.
-    """
+    """Build the model specified in config."""
     model_name = config["model"]["name"]
+    num_classes = config["model"]["num_classes"]
+
     if model_name == "cnn_baseline":
         from src.models.cnn_baseline import CNNBaseline
-        model = CNNBaseline(num_classes=config["model"]["num_classes"])
+        return CNNBaseline(num_classes=num_classes)
+    elif model_name == "crnn":
+        from src.models.crnn import CRNN
+        return CRNN(
+            num_classes=num_classes,
+            gru_hidden=config["model"].get("gru_hidden", 128),
+            gru_layers=config["model"].get("gru_layers", 2),
+            dropout=config["model"].get("dropout", 0.3),
+        )
     else:
         raise ValueError(f"Unknown model: {model_name}")
-    return model
 
 
 def train_one_epoch(

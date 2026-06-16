@@ -1,5 +1,5 @@
 project:
-  name: "RespirAI ICBHI2017 Phase 3"
+  name: "RespirAI ICBHI2017 CRNN"
   split: "official_60_40"
   task: "lung_sound_classification"
 
@@ -15,13 +15,13 @@ audio:
   fmin: 50
   fmax: 2000
   max_time_frames: 500
-  augmentation: true
+  augmentation: false
 
 training:
   seed: 42
   batch_size: 16
   epochs: 30
-  learning_rate: 0.0003
+  learning_rate: 0.0001
   weight_decay: 0.0001
   num_workers: 0
   device: "cuda"
@@ -34,8 +34,11 @@ training:
   experiment_log: "experiments.jsonl"
 
 model:
-  name: "cnn_baseline"
+  name: "crnn"
   num_classes: 4
+  gru_hidden: 128
+  gru_layers: 2
+  dropout: 0.3
 
 labels:
   - normal
