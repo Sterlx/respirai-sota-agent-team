@@ -285,6 +285,11 @@ def main():
     )
     logger.info("Configuration loaded successfully.")
 
+    # Reproducibility
+    torch.manual_seed(config["training"].get("seed", 42))
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(config["training"].get("seed", 42))
+
     # Device setup
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
@@ -299,7 +304,6 @@ def main():
         lr=config["training"]["learning_rate"],
         weight_decay=config["training"].get("weight_decay", 0.0),
     )
-    criterion = nn.CrossEntropyLoss()
 
     # Mixed precision scaler
     scaler = GradScaler("cuda", enabled=config["training"].get("use_amp", True))
@@ -337,6 +341,26 @@ def main():
         pin_memory=True,
         collate_fn=lambda b: collate_fn(b, config["audio"].get("max_time_frames", 0)),
     )
+
+    # Compute class weights from training set and create weighted loss
+    class_weights = None
+    if config["training"].get("use_class_weights", False):
+        from collections import Counter
+        label_counts = Counter()
+        for _, label_dict in train_dataset:
+            for name, val in label_dict.items():
+                if val == 1:
+                    label_counts[name] += 1
+        total = sum(label_counts.values())
+        weight_list = [
+            total / max(label_counts.get(name, 1), 1)
+            for name in ["normal", "crackles", "wheezes", "both"]
+        ]
+        class_weights = torch.tensor(weight_list, device=device)
+        logger.info(f"Class weights: normal={weight_list[0]:.2f} crackles={weight_list[1]:.2f} "
+                     f"wheezes={weight_list[2]:.2f} both={weight_list[3]:.2f}")
+
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
 
     # Training parameters
     num_epochs = config["training"]["epochs"]
