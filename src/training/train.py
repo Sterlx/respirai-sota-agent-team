@@ -70,6 +70,9 @@ def make_preprocessing_transform(config: dict, augment: bool = False) -> callabl
                 n_fft=self.n_fft, hop_length=self.hop_length,
                 n_mels=self.n_mels, f_min=self.f_min, f_max=self.f_max,
             )
+            # Guarantee exactly 3D: (channels, n_mels, time)
+            while mel.dim() > 3:
+                mel = mel.squeeze(0)
             if mel.dim() == 2:
                 mel = mel.unsqueeze(0)
             if self.use_augment:
