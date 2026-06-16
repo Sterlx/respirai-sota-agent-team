@@ -24,16 +24,17 @@
 | 12 | `torch.stack` expects equal-size tensors (variable spectrogram length) | 🔴 Cross-file | `train.py` collate_fn |
 | 13 | `AttributeError: 'NoneType' object has no attribute 'get'` — training phase passes `None` metrics to `log_metrics` | 🔴 Cross-file | `train.py` → `log_metrics()` |
 | 14 | `preprocessing.py` and `augmentation.py` completely unused by `train.py` — agents created them independently, nobody wired them in | 🔴 Cross-file | `train.py` → `preprocessing.py`, `augmentation.py` |
+| 15 | **Per-file labeling is wrong**: dataset reduced 6,898 annotated cycles to 922 file-level labels, losing 56% of label fidelity. ICBHI challenge (Rocha et al. 2019) evaluates per respiratory cycle, not per file | 🔴 Protocol violation | `icbhi_dataset.py`, `train.py` |
 
 ---
 
 ## Root Cause Analysis
 
-These 13 errors fall into exactly **three root causes**. None are unique — they repeat the same structural flaw.
+These 15 errors fall into exactly **three root causes**. None are unique — they repeat the same structural flaw.
 
-### Root Cause 1: No Interface Contract Between Agents (🔴 — 6 errors)
+### Root Cause 1: No Interface Contract Between Agents (🔴 — 7 errors)
 
-**Errors:** #4, #5, #7, #12, #13, #14
+**Errors:** #4, #5, #7, #12, #13, #14, #15
 
 Every agent writes their file in isolation with no shared contract. Agent A decides on a function signature, Agent B calls it with different arguments, nobody checks.
 
@@ -52,9 +53,14 @@ train.py stacks:         torch.stack(spectrograms)
 
 train.py logs:           log_metrics(logger, "Train", train_loss, None, epoch)
                          └─ log_metrics assumes metrics is always a dict, but training phase passes None
+
+train.py labels:         icbhi_dataset labels each FILE with one class (e.g., "wheezes")
+                         └─ But 56% of files contain cycles with MULTIPLE different labels.
+                            ICBHI challenge evaluates PER CYCLE (Rocha et al. 2019).
+                            Per-file labeling discards 87% of annotations (6,898 cycles → 922 files).
 ```
 
-**Deep cause:** The multi-agent runner dispatches files in sequence but never cross-references them. There is no "contract first" step where agents agree on interfaces before writing code. Each agent optimizes for its own file, not the system.
+**Deep cause:** The multi-agent runner dispatches files in sequence but never cross-references them. There is no "contract first" step where agents agree on interfaces before writing code. Each agent optimizes for its own file, not the system. Additionally, agents had no knowledge of the ICBHI challenge evaluation protocol — they defaulted to the simplest label scheme (per-file) without checking the literature.
 
 **Fix implemented:** `code_integration_agent` — a gatekeeper that reads all files + config and validates 6 cross-file rules before code leaves the laptop.
 
@@ -110,9 +116,9 @@ A single `python -c "import ..."` before any agent runs would catch API misuse. 
 ## Error Distribution by Type
 
 ```
-🔴 Cross-file mismatch:    6 errors (43%)  ← code_integration_agent will catch all
-🟡 Environment gap:        5 errors (36%)  ← partial fix, needs env manifest
-🔵 API/runner misuse:      3 errors (21%)  ← caught by smoke test, not in agent output
+🔴 Cross-file mismatch:    7 errors (47%)  ← code_integration_agent + ICBHI protocol rule will catch
+🟡 Environment gap:        5 errors (33%)  ← partial fix, needs env manifest
+🔵 API/runner misuse:      3 errors (20%)  ← caught by smoke test, not in agent output
 ```
 
 ---
@@ -138,7 +144,7 @@ The `code_integration_agent` (static analysis of imports, signatures, config key
 | Layer | Mechanism | Catches |
 |---|---|---|
 | `code_integration_agent` | 6-rule static check + auto-fix loop | Cross-file mismatches (#4, #5, #7, #12) |
-| `CROSS_FILE_RULES` in system prompt | Pre-generation guidance | Prevents agents from making mismatch assumptions |
+| `CROSS_FILE_RULES` in system prompt | Pre-generation guidance + ICBHI evaluation protocol (rule #7) | Prevents agents from making mismatch assumptions + per-file label mistake |
 | `DATASET_CONTEXT` injection | Agents see real data paths/formats | Prevents path assumptions (#8) |
 | `requirements.txt` audit | Check imports vs installed packages | Catches missing deps (#11) |
 | `soundfile` fallback | Avoid torchcodec/FFmpeg | Removes Windows-specific dep |
@@ -148,3 +154,4 @@ The `code_integration_agent` (static analysis of imports, signatures, config key
 1. **Environment manifest** — `reproducibility_agent` should produce a `training_computer.yaml` (OS, PyTorch version, CUDA, installed packages) that all agents reference
 2. **Runtime smoke test** — After `code_integration_agent` passes, run `python -c "import src.data; ..."` to catch runtime errors before git push
 3. **Config validation** — A `config_schema.yaml` that agents validate against, so `config["data"]` is guaranteed to exist
+4. **ICBHI protocol awareness** — All agents now receive rule #7 (per-cycle evaluation per Rocha et al. 2019), but this knowledge must be maintained as the project evolves

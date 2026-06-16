@@ -515,6 +515,17 @@ being created by other agents. Check these rules:
 
 6. ONLY IMPORT FROM FILES IN THE PHASE 2 FILE LIST.
    Do NOT import from modules that don't exist yet.
+
+7. ICBHI2017 EVALUATION PROTOCOL (Rocha et al. 2019, Physiol. Meas.):
+   - The ICBHI challenge evaluates PER RESPIRATORY CYCLE, not per file.
+   - Each annotation .txt row = one cycle with its own label (crackles/wheezes/both/normal).
+   - Do NOT reduce a file's multiple cycles to a single file-level label.
+   - 56% of files contain cycles with DIFFERENT labels — per-file labeling is wrong.
+   - Train and evaluate on individual cycles. The official split is patient-level,
+     so all cycles from a patient stay in the same split (no leakage).
+   - Per-file aggregation (voting across cycles) is supplementary, not the primary metric.
+   - The official score = average of (Se+Sp)/2 across the 4 classes, computed on
+     individual cycle predictions (Rocha et al. 2019, Section 2.5).
 """
 
 

@@ -1,11 +1,13 @@
 project:
-  name: "RespirAI CRNN + Augmentation"
+  name: "RespirAI CRNN Per-Cycle"
   split: "official_60_40"
   task: "lung_sound_classification"
 
 data:
   data_dir: "data"
   split_file: "data/official_split.txt"
+  use_cycle_labels: true
+  cycle_fixed_length_seconds: 5.0
 
 audio:
   sample_rate: 4000
@@ -14,7 +16,7 @@ audio:
   n_mels: 64
   fmin: 50
   fmax: 2000
-  max_time_frames: 1200
+  max_time_frames: 160
   augmentation: true
 
 training:

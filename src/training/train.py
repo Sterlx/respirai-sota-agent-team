@@ -80,8 +80,13 @@ def make_preprocessing_transform(config: dict, augment: bool = False) -> callabl
 
 
 def collate_fn(batch: list, max_time_frames: int = 0) -> tuple[torch.Tensor, torch.Tensor]:
-    """Collate (waveform, labels_dict) → (stacked_inputs_padded, class_indices)."""
-    inputs, label_dicts = zip(*batch)
+    """Collate (waveform, labels_dict, [filename]) → (stacked_inputs_padded, class_indices)."""
+    # Handle both (waveform, labels_dict) and (waveform, labels_dict, filename)
+    if len(batch[0]) == 3:
+        inputs, label_dicts, filenames = zip(*batch)
+    else:
+        inputs, label_dicts = zip(*batch)
+        filenames = None
 
     # Pad spectrograms to the same time dimension
     max_time = max(x.shape[-1] for x in inputs)
@@ -212,9 +217,17 @@ def validate(
     total_loss = 0.0
     all_preds = []
     all_targets = []
+    all_filenames = []
 
     with torch.no_grad():
-        for inputs, targets in tqdm(dataloader, desc="Validation", leave=False):
+        for batch in tqdm(dataloader, desc="Validation", leave=False):
+            # Handle (inputs, targets) or (inputs, targets, filenames)
+            if isinstance(batch, tuple) and len(batch) == 3:
+                inputs, targets, fnames = batch
+                all_filenames.extend(fnames)
+            else:
+                inputs, targets = batch
+
             inputs = inputs.to(device, non_blocking=True)
             targets = targets.to(device, non_blocking=True)
 
@@ -231,9 +244,66 @@ def validate(
     all_preds = torch.cat(all_preds).numpy()
     all_targets = torch.cat(all_targets).numpy()
 
-    # Use the pre-built metrics function
+    # Per-cycle metrics (for monitoring)
     metrics = compute_all_metrics(all_targets, all_preds)
+
+    # File-level metrics (official ICBHI score) when filenames available
+    if all_filenames:
+        file_metrics = compute_file_level_metrics(all_preds, all_targets, all_filenames)
+        metrics["icbhi_score_file"] = file_metrics["icbhi_score"]
+        metrics["file_level"] = True
+
     return avg_loss, metrics
+
+
+def compute_file_level_metrics(
+    all_preds: np.ndarray,
+    all_targets: np.ndarray,
+    all_filenames: list[str],
+) -> dict:
+    """
+    Aggregate per-cycle predictions to per-file predictions via voting,
+    then compute the official ICBHI score at file level.
+
+    Voting rule (standard in literature):
+      file_has_crackles = any(cycle pred is crackles or both)
+      file_has_wheezes  = any(cycle pred is wheezes or both)
+      Final: both/crackles/wheezes/normal based on combination.
+    """
+    from collections import defaultdict
+
+    # Group cycles by filename
+    file_preds: dict[str, list[int]] = defaultdict(list)
+    file_labels: dict[str, int] = {}
+
+    for pred, target, fname in zip(all_preds, all_targets, all_filenames):
+        file_preds[fname].append(pred)
+        if fname not in file_labels:
+            file_labels[fname] = target
+
+    # Vote: class indices 0=normal, 1=crackles, 2=wheezes, 3=both
+    file_pred_flat = []
+    file_label_flat = []
+
+    for fname, preds in file_preds.items():
+        has_crackles = any(p in (1, 3) for p in preds)  # crackles or both
+        has_wheezes = any(p in (2, 3) for p in preds)   # wheezes or both
+
+        if has_crackles and has_wheezes:
+            vote = 3  # both
+        elif has_crackles:
+            vote = 1  # crackles
+        elif has_wheezes:
+            vote = 2  # wheezes
+        else:
+            vote = 0  # normal
+
+        file_pred_flat.append(vote)
+        file_label_flat.append(file_labels[fname])
+
+    return compute_all_metrics(
+        np.array(file_label_flat), np.array(file_pred_flat)
+    )
 
 
 def log_metrics(logger, phase: str, loss: float, metrics: dict, epoch: int = None):
@@ -258,7 +328,10 @@ def log_metrics(logger, phase: str, loss: float, metrics: dict, epoch: int = Non
 
     icbhi = metrics.get("icbhi_score", "N/A")
     icbhi_str = f"{icbhi:.4f}" if isinstance(icbhi, float) else str(icbhi)
-    logger.info(f"  ICBHI Score: {icbhi_str}")
+    logger.info(f"  ICBHI Score (per-cycle): {icbhi_str}")
+    if "icbhi_score_file" in metrics:
+        icbhi_f = metrics["icbhi_score_file"]
+        logger.info(f"  ICBHI Score (per-file):  {icbhi_f:.4f}")
 
 
 def save_checkpoint(
@@ -316,18 +389,44 @@ def main():
     train_transform = make_preprocessing_transform(config, augment=True)
     val_transform = make_preprocessing_transform(config, augment=False)
 
-    train_dataset = ICBHIDataset(
-        data_dir=data_config["data_dir"],
-        split_file=data_config["split_file"],
-        split="train",
-        transform=train_transform,
-    )
-    val_dataset = ICBHIDataset(
-        data_dir=data_config["data_dir"],
-        split_file=data_config["split_file"],
-        split="test",
-        transform=val_transform,
-    )
+    use_cycles = data_config.get("use_cycle_labels", False)
+    sample_rate = config["audio"].get("sample_rate", 4000)
+
+    if use_cycles:
+        from src.data.icbhi_cycle_dataset import ICBHICycleDataset
+        fixed_len = data_config.get("cycle_fixed_length_seconds", 5.0)
+        train_dataset = ICBHICycleDataset(
+            data_dir=data_config["data_dir"],
+            split_file=data_config["split_file"],
+            split="train",
+            transform=train_transform,
+            sample_rate=sample_rate,
+            fixed_length_seconds=fixed_len,
+        )
+        val_dataset = ICBHICycleDataset(
+            data_dir=data_config["data_dir"],
+            split_file=data_config["split_file"],
+            split="test",
+            transform=val_transform,
+            sample_rate=sample_rate,
+            fixed_length_seconds=fixed_len,
+            return_filename=True,  # needed for file-level voting
+        )
+        logger.info(f"Per-cycle dataset ({fixed_len}s fixed): "
+                     f"{len(train_dataset)} train, {len(val_dataset)} val cycles")
+    else:
+        train_dataset = ICBHIDataset(
+            data_dir=data_config["data_dir"],
+            split_file=data_config["split_file"],
+            split="train",
+            transform=train_transform,
+        )
+        val_dataset = ICBHIDataset(
+            data_dir=data_config["data_dir"],
+            split_file=data_config["split_file"],
+            split="test",
+            transform=val_transform,
+        )
 
     train_loader = DataLoader(
         train_dataset,
@@ -390,6 +489,8 @@ def main():
         log_metrics(logger, "Validation", val_loss, val_metrics, epoch)
 
         # Early stopping based on ICBHI score
+        # Early stopping based on official per-cycle ICBHI score
+        # (Rocha et al. 2019: score computed on individual respiratory cycles)
         current_score = val_metrics.get("icbhi_score", 0.0)
         if current_score > best_metric:
             best_metric = current_score
