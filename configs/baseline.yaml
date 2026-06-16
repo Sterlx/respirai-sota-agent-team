@@ -1,5 +1,5 @@
 project:
-  name: "RespirAI ICBHI2017 High-Res CRNN"
+  name: "RespirAI CRNN + Augmentation"
   split: "official_60_40"
   task: "lung_sound_classification"
 
@@ -15,12 +15,12 @@ audio:
   fmin: 50
   fmax: 2000
   max_time_frames: 1200
-  augmentation: false
+  augmentation: true
 
 training:
   seed: 42
   batch_size: 8
-  epochs: 30
+  epochs: 50
   learning_rate: 0.0001
   weight_decay: 0.0001
   num_workers: 0
@@ -38,7 +38,7 @@ model:
   num_classes: 4
   gru_hidden: 128
   gru_layers: 2
-  dropout: 0.3
+  dropout: 0.2
 
 labels:
   - normal
