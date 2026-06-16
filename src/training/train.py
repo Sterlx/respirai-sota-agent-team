@@ -33,9 +33,8 @@ LABEL_TO_INDEX = {"normal": 0, "crackles": 1, "wheezes": 2, "both": 3}
 INDEX_TO_LABEL = {v: k for k, v in LABEL_TO_INDEX.items()}
 
 
-def make_preprocessing_transform(config: dict) -> callable:
-    """Build a waveform→spectrogram transform using src/audio/preprocessing.py
-    and optionally src/audio/augmentation.py."""
+def make_preprocessing_transform(config: dict, augment: bool = False) -> callable:
+    """Build a waveform→spectrogram transform. Augmentation only when augment=True."""
     from src.audio.preprocessing import log_mel_spectrogram
     from src.audio.augmentation import SpecAugment
 
@@ -46,7 +45,7 @@ def make_preprocessing_transform(config: dict) -> callable:
     n_mels = audio_cfg.get("n_mels", 32)
     f_min = audio_cfg.get("fmin", 50)
     f_max = audio_cfg.get("fmax", 2000)
-    use_augment = audio_cfg.get("augmentation", False)
+    use_augment = augment and audio_cfg.get("augmentation", False)
 
     class PreprocessingPipeline:
         """Composable pipeline using src/audio modules."""
@@ -66,13 +65,11 @@ def make_preprocessing_transform(config: dict) -> callable:
                 )
 
         def __call__(self, waveform: torch.Tensor) -> torch.Tensor:
-            # waveform: (1, samples)
             mel = log_mel_spectrogram(
                 waveform, self.sample_rate,
                 n_fft=self.n_fft, hop_length=self.hop_length,
                 n_mels=self.n_mels, f_min=self.f_min, f_max=self.f_max,
             )
-            # Ensure output is (1, n_mels, time)
             if mel.dim() == 2:
                 mel = mel.unsqueeze(0)
             if self.use_augment:
@@ -314,21 +311,22 @@ def main():
     # Mixed precision scaler
     scaler = GradScaler("cuda", enabled=config["training"].get("use_amp", True))
 
-    # Datasets and loaders
+    # Datasets and loaders — augmentation ONLY for training
     data_config = config["data"]
-    transform = make_preprocessing_transform(config)
+    train_transform = make_preprocessing_transform(config, augment=True)
+    val_transform = make_preprocessing_transform(config, augment=False)
 
     train_dataset = ICBHIDataset(
         data_dir=data_config["data_dir"],
         split_file=data_config["split_file"],
         split="train",
-        transform=transform,
+        transform=train_transform,
     )
     val_dataset = ICBHIDataset(
         data_dir=data_config["data_dir"],
         split_file=data_config["split_file"],
         split="test",
-        transform=transform,
+        transform=val_transform,
     )
 
     train_loader = DataLoader(
