@@ -159,6 +159,11 @@ def log_mel_spectrogram(
     )
     # Compute mel spectrogram: (..., n_mels, time)
     mel_spec = mel_transform(waveform)
+    # Force shape to (1, n_mels, time) regardless of torchaudio version
+    if mel_spec.dim() == 4:
+        mel_spec = mel_spec.squeeze(0)  # (1,1,n_mels,time) → (1,n_mels,time)
+    if mel_spec.dim() == 2:
+        mel_spec = mel_spec.unsqueeze(0)  # (n_mels,time) → (1,n_mels,time)
     # Convert to log scale: log(mel_spec + eps)
     return torch.log(mel_spec + eps)
 
