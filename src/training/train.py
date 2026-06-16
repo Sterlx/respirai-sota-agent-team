@@ -369,6 +369,7 @@ def main():
     checkpoint_dir = config["training"].get("checkpoint_dir", "checkpoints")
     save_period = config["training"].get("save_period", 5)   # save every N epochs
     best_metric = 0.0
+    best_val_metrics = {}
     patience_counter = 0
 
     # Training loop
@@ -384,10 +385,11 @@ def main():
         log_metrics(logger, "Train", train_loss, None, epoch)
         log_metrics(logger, "Validation", val_loss, val_metrics, epoch)
 
-        # Early stopping based on ICBHI score (average of sensitivity and specificity)
+        # Early stopping based on ICBHI score
         current_score = val_metrics.get("icbhi_score", 0.0)
         if current_score > best_metric:
             best_metric = current_score
+            best_val_metrics = val_metrics
             patience_counter = 0
             # Save best model
             save_checkpoint(
@@ -445,9 +447,18 @@ def main():
     tracker = ExperimentTracker(
         log_file=config["training"].get("experiment_log", "experiments.jsonl")
     )
+    # Build a flat metrics dict for the tracker
+    tracker_metrics = {"best_icbhi_score": best_metric, "epochs_completed": epoch}
+    if best_val_metrics:
+        se = best_val_metrics.get("per_class_sensitivity", {})
+        sp = best_val_metrics.get("per_class_specificity", {})
+        for idx, name in INDEX_TO_LABEL.items():
+            tracker_metrics[f"{name}_se"] = se.get(idx, 0)
+            tracker_metrics[f"{name}_sp"] = sp.get(idx, 0)
+
     tracker.log_experiment(
         config=config,
-        metrics={"best_icbhi_score": best_metric, "epochs_completed": epoch},
+        metrics=tracker_metrics,
         name=config["model"]["name"],
     )
     logger.info(f"Experiment logged to {tracker.log_file}")
