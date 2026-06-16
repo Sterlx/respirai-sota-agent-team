@@ -215,6 +215,7 @@ def validate(
     criterion,
     device,
     logger,
+    config: dict = None,
 ) -> tuple[float, dict]:
     """
     Run validation: loss and per-class metrics.
@@ -243,9 +244,15 @@ def validate(
                 loss = criterion(outputs, targets)
 
             total_loss += loss.item()
-            # Multi-label: sigmoid > 0.5; legacy 4-class: argmax
+            # Multi-label: per-class thresholds from config
             if outputs.shape[1] == 2:
-                predicted = (torch.sigmoid(outputs) > 0.5).float()
+                ct = cfg.get("crackles_threshold", 0.5)
+                wt = cfg.get("wheezes_threshold", 0.5)
+                probs = torch.sigmoid(outputs)
+                predicted = torch.stack([
+                    (probs[:, 0] > ct).float(),
+                    (probs[:, 1] > wt).float(),
+                ], dim=1)
             else:
                 _, predicted = torch.max(outputs, 1)
             all_preds.append(predicted.cpu())
@@ -256,17 +263,22 @@ def validate(
     all_targets = torch.cat(all_targets).numpy()
 
     # Convert multi-label [crackles, wheezes] → 4-class for ICBHI score
+    cfg = config or {}
     if all_targets.ndim == 2 and all_targets.shape[1] == 2:
-        all_targets_4class = _multilabel_to_4class(all_targets)
-        all_preds_4class = _multilabel_to_4class(all_preds)
+        ct = cfg.get("crackles_threshold", 0.5)
+        wt = cfg.get("wheezes_threshold", 0.5)
+        all_targets_4class = _multilabel_to_4class(all_targets, 0.5, 0.5)
+        all_preds_4class = _multilabel_to_4class(all_preds, ct, wt)
         metrics = compute_all_metrics(all_targets_4class, all_preds_4class)
     else:
         metrics = compute_all_metrics(all_targets, all_preds)
 
     if all_filenames:
         if all_targets.ndim == 2 and all_targets.shape[1] == 2:
-            ft_4class = _multilabel_to_4class(all_targets)
-            fp_4class = _multilabel_to_4class(all_preds)
+            ct = cfg.get("crackles_threshold", 0.5)
+            wt = cfg.get("wheezes_threshold", 0.5)
+            ft_4class = _multilabel_to_4class(all_targets, 0.5, 0.5)
+            fp_4class = _multilabel_to_4class(all_preds, ct, wt)
         else:
             ft_4class, fp_4class = all_targets, all_preds
         file_metrics = compute_file_level_metrics(fp_4class, ft_4class, all_filenames)
@@ -276,10 +288,12 @@ def validate(
     return avg_loss, metrics
 
 
-def _multilabel_to_4class(arr: np.ndarray) -> np.ndarray:
-    """Convert [crackles, wheezes] binary → 4-class index (0=normal,1=crackles,2=wheezes,3=both)."""
-    crackles = arr[:, 0] > 0.5 if arr.dtype == np.float32 else arr[:, 0].astype(bool)
-    wheezes = arr[:, 1] > 0.5 if arr.dtype == np.float32 else arr[:, 1].astype(bool)
+def _multilabel_to_4class(arr: np.ndarray, crackles_thresh: float = 0.5,
+                          wheezes_thresh: float = 0.5) -> np.ndarray:
+    """Convert [crackles, wheezes] binary/floats → 4-class index."""
+    if arr.dtype == np.float32 or arr.dtype == np.float64:
+        crackles = arr[:, 0] > crackles_thresh
+        wheezes = arr[:, 1] > wheezes_thresh
     result = np.zeros(len(arr), dtype=np.int64)
     result[crackles & wheezes] = 3   # both
     result[crackles & ~wheezes] = 1  # crackles
@@ -477,15 +491,15 @@ def main():
         collate_fn=lambda b: collate_fn(b, config["audio"].get("max_time_frames", 0)),
     )
 
-    # Compute class weights from training set — for multi-label BCE
+    # Compute class weights — for multi-label BCE with configurable pos_weight
     pos_weight = None
     if config["training"].get("use_class_weights", False):
         crackles_count = sum(1 for _, labels in train_dataset if labels[0].item() == 1)
         wheezes_count = sum(1 for _, labels in train_dataset if labels[1].item() == 1)
         total = len(train_dataset)
-        # Weight = neg/pos ratio (inverse frequency)
+        pw_wheezes = config["training"].get("wheeze_pos_weight",
+                    (total - wheezes_count) / max(wheezes_count, 1))
         pw_crackles = (total - crackles_count) / max(crackles_count, 1)
-        pw_wheezes = (total - wheezes_count) / max(wheezes_count, 1)
         pos_weight = torch.tensor([pw_crackles, pw_wheezes], device=device)
         logger.info(f"Crackles: {crackles_count}/{total}, Wheezes: {wheezes_count}/{total}")
         logger.info(f"BCE pos_weight: crackles={pw_crackles:.2f}, wheezes={pw_wheezes:.2f}")
@@ -501,6 +515,7 @@ def main():
     best_metric = 0.0
     best_val_metrics = {}
     patience_counter = 0
+    min_epochs = config["training"].get("early_stopping_min_epochs", 0)
 
     # Training loop
     for epoch in range(1, num_epochs + 1):
@@ -509,7 +524,7 @@ def main():
             model, train_loader, optimizer, criterion, device, scaler,
             accumulation_steps, logger, epoch
         )
-        val_loss, val_metrics = validate(model, val_loader, criterion, device, logger)
+        val_loss, val_metrics = validate(model, val_loader, criterion, device, logger, config)
 
         # Log metrics
         log_metrics(logger, "Train", train_loss, None, epoch)
@@ -568,8 +583,8 @@ def main():
             logger,
         )
 
-        if patience_counter >= patience:
-            logger.info(f"Early stopping triggered after {epoch} epochs with no improvement.")
+        if patience_counter >= patience and epoch > min_epochs:
+            logger.info(f"Early stopping triggered after {epoch} epochs.")
             break
 
     logger.info("Training completed.")

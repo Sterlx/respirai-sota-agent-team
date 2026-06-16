@@ -1,5 +1,5 @@
 project:
-  name: "RespirAI CRNN Per-Cycle"
+  name: "RespirAI Phase 4 Multi-Label Tuned"
   split: "official_60_40"
   task: "lung_sound_classification"
 
@@ -23,14 +23,18 @@ training:
   seed: 42
   batch_size: 8
   epochs: 50
-  learning_rate: 0.0001
+  learning_rate: 0.0005
   weight_decay: 0.0001
   num_workers: 0
   device: "cuda"
   use_amp: true
   gradient_accumulation_steps: 1
   early_stopping_patience: 10
+  early_stopping_min_epochs: 15
   use_class_weights: true
+  wheeze_pos_weight: 6.0
+  crackles_threshold: 0.5
+  wheezes_threshold: 0.3
   checkpoint_dir: "checkpoints"
   save_period: 5
   experiment_log: "experiments.jsonl"
