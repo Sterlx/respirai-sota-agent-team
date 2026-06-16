@@ -37,7 +37,7 @@ training:
 
 model:
   name: "crnn"
-  num_classes: 4
+  num_classes: 2
   gru_hidden: 128
   gru_layers: 2
   dropout: 0.2

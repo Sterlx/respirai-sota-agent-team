@@ -153,20 +153,13 @@ class ICBHICycleDataset(torch.utils.data.Dataset):
         if self.transform is not None:
             waveform = self.transform(waveform)
 
-        # Build label dict
-        label_str = self.LABEL_MAP[(crackles, wheezes)]
-        labels_dict = {
-            "normal": 0,
-            "crackles": 0,
-            "wheezes": 0,
-            "both": 0,
-        }
-        labels_dict[label_str] = 1
+        # Multi-label: [crackles, wheezes] as binary flags
+        labels = torch.tensor([crackles, wheezes], dtype=torch.float32)
 
         # Periodically clear cache to avoid memory bloat
         if len(self._filename_cache) > 200:
             self._filename_cache.pop(next(iter(self._filename_cache)))
 
         if self.return_filename:
-            return waveform, labels_dict, filename
-        return waveform, labels_dict
+            return waveform, labels, filename
+        return waveform, labels

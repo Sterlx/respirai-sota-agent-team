@@ -104,11 +104,18 @@ def collate_fn(batch: list, max_time_frames: int = 0) -> tuple[torch.Tensor, tor
 
     targets = []
     for ld in label_dicts:
-        for label_name, is_active in ld.items():
-            if is_active == 1:
-                targets.append(LABEL_TO_INDEX[label_name])
-                break
+        if isinstance(ld, torch.Tensor):
+            # Multi-label tensor [crackles, wheezes]
+            targets.append(ld)
+        elif isinstance(ld, dict):
+            # Legacy dict format
+            for label_name, is_active in ld.items():
+                if is_active == 1:
+                    targets.append(LABEL_TO_INDEX[label_name])
+                    break
 
+    if isinstance(targets[0], torch.Tensor):
+        return torch.stack(padded), torch.stack(targets)
     return torch.stack(padded), torch.tensor(targets)
 
 
@@ -236,7 +243,11 @@ def validate(
                 loss = criterion(outputs, targets)
 
             total_loss += loss.item()
-            _, predicted = torch.max(outputs, 1)
+            # Multi-label: sigmoid > 0.5; legacy 4-class: argmax
+            if outputs.shape[1] == 2:
+                predicted = (torch.sigmoid(outputs) > 0.5).float()
+            else:
+                _, predicted = torch.max(outputs, 1)
             all_preds.append(predicted.cpu())
             all_targets.append(targets.cpu())
 
@@ -244,16 +255,37 @@ def validate(
     all_preds = torch.cat(all_preds).numpy()
     all_targets = torch.cat(all_targets).numpy()
 
-    # Per-cycle metrics (for monitoring)
-    metrics = compute_all_metrics(all_targets, all_preds)
+    # Convert multi-label [crackles, wheezes] → 4-class for ICBHI score
+    if all_targets.ndim == 2 and all_targets.shape[1] == 2:
+        all_targets_4class = _multilabel_to_4class(all_targets)
+        all_preds_4class = _multilabel_to_4class(all_preds)
+        metrics = compute_all_metrics(all_targets_4class, all_preds_4class)
+    else:
+        metrics = compute_all_metrics(all_targets, all_preds)
 
-    # File-level metrics (official ICBHI score) when filenames available
     if all_filenames:
-        file_metrics = compute_file_level_metrics(all_preds, all_targets, all_filenames)
+        if all_targets.ndim == 2 and all_targets.shape[1] == 2:
+            ft_4class = _multilabel_to_4class(all_targets)
+            fp_4class = _multilabel_to_4class(all_preds)
+        else:
+            ft_4class, fp_4class = all_targets, all_preds
+        file_metrics = compute_file_level_metrics(fp_4class, ft_4class, all_filenames)
         metrics["icbhi_score_file"] = file_metrics["icbhi_score"]
         metrics["file_level"] = True
 
     return avg_loss, metrics
+
+
+def _multilabel_to_4class(arr: np.ndarray) -> np.ndarray:
+    """Convert [crackles, wheezes] binary → 4-class index (0=normal,1=crackles,2=wheezes,3=both)."""
+    crackles = arr[:, 0] > 0.5 if arr.dtype == np.float32 else arr[:, 0].astype(bool)
+    wheezes = arr[:, 1] > 0.5 if arr.dtype == np.float32 else arr[:, 1].astype(bool)
+    result = np.zeros(len(arr), dtype=np.int64)
+    result[crackles & wheezes] = 3   # both
+    result[crackles & ~wheezes] = 1  # crackles
+    result[~crackles & wheezes] = 2  # wheezes
+    # result[~crackles & ~wheezes] = 0  # normal (default)
+    return result
 
 
 def compute_file_level_metrics(
@@ -445,25 +477,20 @@ def main():
         collate_fn=lambda b: collate_fn(b, config["audio"].get("max_time_frames", 0)),
     )
 
-    # Compute class weights from training set and create weighted loss
-    class_weights = None
+    # Compute class weights from training set — for multi-label BCE
+    pos_weight = None
     if config["training"].get("use_class_weights", False):
-        from collections import Counter
-        label_counts = Counter()
-        for _, label_dict in train_dataset:
-            for name, val in label_dict.items():
-                if val == 1:
-                    label_counts[name] += 1
-        total = sum(label_counts.values())
-        weight_list = [
-            total / max(label_counts.get(name, 1), 1)
-            for name in ["normal", "crackles", "wheezes", "both"]
-        ]
-        class_weights = torch.tensor(weight_list, device=device)
-        logger.info(f"Class weights: normal={weight_list[0]:.2f} crackles={weight_list[1]:.2f} "
-                     f"wheezes={weight_list[2]:.2f} both={weight_list[3]:.2f}")
+        crackles_count = sum(1 for _, labels in train_dataset if labels[0].item() == 1)
+        wheezes_count = sum(1 for _, labels in train_dataset if labels[1].item() == 1)
+        total = len(train_dataset)
+        # Weight = neg/pos ratio (inverse frequency)
+        pw_crackles = (total - crackles_count) / max(crackles_count, 1)
+        pw_wheezes = (total - wheezes_count) / max(wheezes_count, 1)
+        pos_weight = torch.tensor([pw_crackles, pw_wheezes], device=device)
+        logger.info(f"Crackles: {crackles_count}/{total}, Wheezes: {wheezes_count}/{total}")
+        logger.info(f"BCE pos_weight: crackles={pw_crackles:.2f}, wheezes={pw_wheezes:.2f}")
 
-    criterion = nn.CrossEntropyLoss(weight=class_weights)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     # Training parameters
     num_epochs = config["training"]["epochs"]
