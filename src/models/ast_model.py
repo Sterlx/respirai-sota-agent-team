@@ -55,11 +55,15 @@ class ASTClassifier(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x: [B, 1, 128, 1024] log-mel spectrogram.
+            x: Log-mel spectrogram. Accepts [B, 1, n_mels, time] or
+               [B, 1, n_mels, 1, time] (extra channel from MelSpectrogram).
 
         Returns:
             logits: [B, num_labels]
         """
-        # AST expects [B, 1, 128, 1024] — already correct
+        # Fix shape: remove extra dim if present [B, 1, M, 1, T] → [B, 1, M, T]
+        if x.dim() == 5:
+            x = x.squeeze(3)
+        # AST expects [B, 1, n_mels, time]
         outputs = self.ast(x).pooler_output  # [B, 768]
         return self.classifier(outputs)

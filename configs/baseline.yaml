@@ -11,7 +11,7 @@ data:
 
 audio:
   sample_rate: 16000
-  n_fft: 400
+  n_fft: 512
   hop_length: 160
   n_mels: 128
   fmin: 50

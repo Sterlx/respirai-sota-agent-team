@@ -26,6 +26,8 @@
 | 14 | `preprocessing.py` and `augmentation.py` completely unused by `train.py` — agents created them independently, nobody wired them in | 🔴 Cross-file | `train.py` → `preprocessing.py`, `augmentation.py` |
 | 15 | **Per-file labeling is wrong**: dataset reduced 6,898 annotated cycles to 922 file-level labels, losing 56% of label fidelity. ICBHI challenge (Rocha et al. 2019) evaluates per respiratory cycle, not per file | 🔴 Protocol violation | `icbhi_dataset.py`, `train.py` |
 | 16 | `UnboundLocalError: 'cfg'` — `cfg = config or {}` defined after its first use in validate() | 🔴 Cross-file | `train.py` validate() |
+| 17 | AST input shape `[B,1,128,1,T]` (5D) — MelSpectrogram adds extra channel dim on some torchaudio versions, conv2d expects 4D | 🟡 Env/API | `ast_model.py` + torchaudio version |
+| 18 | Mel filterbank all-zero at `n_mels=128, n_fft=400` — not enough FFT bins (201) to cover 128 mel filters at 50-8000 Hz | 🟡 Config param | `baseline.yaml` + `preprocessing.py` |
 
 ---
 
@@ -69,7 +71,7 @@ train.py labels:         icbhi_dataset labels each FILE with one class (e.g., "w
 
 ### Root Cause 2: No Environment Contract (🟡 — 5 errors)
 
-**Errors:** #6, #8, #9, #10, #11
+**Errors:** #6, #8, #9, #10, #11, #17, #18
 
 The laptop (where agents run) and the training computer (where code executes) have different environments. No agent checks for this.
 
@@ -87,6 +89,8 @@ laptop code → git push → training pc → git pull → 💥
 | #9 Mel params | `n_mels=64, n_fft=400` | 400/2+1=201 bins, not enough for 64 mels |
 | #10 Pickle | Local closure `transform` | DataLoader workers can't pickle closures |
 | #11 torchcodec | FFmpeg available | Windows has no FFmpeg DLLs |
+| #17 AST shape | MelSpectrogram returns 3D | Some torchaudio versions return 4D with extra channel |
+| #18 Mel coverage | `n_mels=128, n_fft=400` | 201 bins for 128 mels at 50-8000 Hz → many all-zero |
 
 **Deep cause:** Agents generate code on the laptop using DeepSeek API. They have no visibility into the training computer's OS, PyTorch version, installed packages, or file paths. There is no "environment manifest" that agents check against.
 
@@ -117,9 +121,9 @@ A single `python -c "import ..."` before any agent runs would catch API misuse. 
 ## Error Distribution by Type
 
 ```
-🔴 Cross-file mismatch:    7 errors (47%)  ← code_integration_agent + ICBHI protocol rule will catch
-🟡 Environment gap:        5 errors (33%)  ← partial fix, needs env manifest
-🔵 API/runner misuse:      3 errors (20%)  ← caught by smoke test, not in agent output
+🔴 Cross-file mismatch:    8 errors (44%)  ← code_integration_agent + ICBHI protocol rule will catch
+🟡 Environment gap:        7 errors (39%)  ← partial fix, needs env manifest
+🔵 API/runner misuse:      3 errors (17%)  ← caught by smoke test, not in agent output
 ```
 
 ---
