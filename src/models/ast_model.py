@@ -61,9 +61,10 @@ class ASTClassifier(nn.Module):
         Returns:
             logits: [B, num_labels]
         """
-        # Fix shape: remove extra dim if present [B, 1, M, 1, T] → [B, 1, M, T]
+        # Force [B, 1, n_mels, time] — handles any extra dims from torchaudio
         if x.dim() == 5:
             x = x.squeeze(3)
+        x = x.reshape(x.shape[0], 1, x.shape[-2], x.shape[-1])
         # AST expects [B, 1, n_mels, time]
         outputs = self.ast(x).pooler_output  # [B, 768]
         return self.classifier(outputs)
