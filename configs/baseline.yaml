@@ -1,5 +1,5 @@
 project:
-  name: "RespirAI Phase 4 Multi-Label Tuned"
+  name: "RespirAI AST Pre-Trained"
   split: "official_60_40"
   task: "lung_sound_classification"
 
@@ -10,27 +10,27 @@ data:
   cycle_fixed_length_seconds: 5.0
 
 audio:
-  sample_rate: 4000
-  n_fft: 512
-  hop_length: 128
-  n_mels: 64
+  sample_rate: 16000
+  n_fft: 400
+  hop_length: 160
+  n_mels: 128
   fmin: 50
-  fmax: 2000
-  max_time_frames: 160
+  fmax: 8000
+  max_time_frames: 1024
   augmentation: true
 
 training:
   seed: 42
-  batch_size: 8
+  batch_size: 4
   epochs: 50
-  learning_rate: 0.0005
+  learning_rate: 0.00005
   weight_decay: 0.0001
   num_workers: 0
   device: "cuda"
   use_amp: true
   gradient_accumulation_steps: 1
   early_stopping_patience: 10
-  early_stopping_min_epochs: 15
+  early_stopping_min_epochs: 10
   use_class_weights: true
   wheeze_pos_weight: 6.0
   crackles_threshold: 0.5
@@ -40,11 +40,10 @@ training:
   experiment_log: "experiments.jsonl"
 
 model:
-  name: "crnn"
+  name: "ast"
   num_classes: 2
-  gru_hidden: 128
-  gru_layers: 2
-  dropout: 0.2
+  pretrained: true
+  dropout: 0.3
 
 labels:
   - normal

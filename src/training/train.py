@@ -163,6 +163,13 @@ def get_model(config: dict) -> nn.Module:
             gru_layers=config["model"].get("gru_layers", 2),
             dropout=config["model"].get("dropout", 0.3),
         )
+    elif model_name == "ast":
+        from src.models.ast_model import ASTClassifier
+        return ASTClassifier(
+            num_labels=num_classes,
+            pretrained=config["model"].get("pretrained", True),
+            dropout=config["model"].get("dropout", 0.3),
+        )
     else:
         raise ValueError(f"Unknown model: {model_name}")
 

@@ -12,3 +12,4 @@ tqdm
 pyyaml
 rich
 torch torchvision --index-url https://download.pytorch.org/whl/cu126
+transformers
