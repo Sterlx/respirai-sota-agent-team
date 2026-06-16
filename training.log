@@ -1,0 +1,121 @@
+2026-06-16 07:09:09,157 [INFO] Configuration loaded successfully.
+2026-06-16 07:09:09,173 [INFO] Using device: cuda
+2026-06-16 07:09:09,255 [INFO] Model crnn initialized with 2 classes.
+2026-06-16 07:09:10,348 [INFO] Per-cycle dataset (5.0s fixed): 4142 train, 2756 val cycles
+2026-06-16 07:09:21,550 [INFO] Crackles: 1578/4142, Wheezes: 864/4142
+2026-06-16 07:09:21,550 [INFO] BCE pos_weight: crackles=1.62, wheezes=3.79
+2026-06-16 07:09:21,550 [INFO] --- Starting epoch 1/50 ---
+2026-06-16 07:09:47,364 [INFO] Epoch 1 Train Loss: 0.9632
+2026-06-16 07:09:47,365 [INFO] Epoch 1 Validation Loss: 0.9481
+2026-06-16 07:09:47,365 [INFO]   Class normal: Se=0.4902, Sp=0.6814
+2026-06-16 07:09:47,365 [INFO]   Class crackles: Se=0.7011, Sp=0.5017
+2026-06-16 07:09:47,367 [INFO]   Class wheezes: Se=0.0338, Sp=0.9625
+2026-06-16 07:09:47,367 [INFO]   Class both: Se=0.0000, Sp=1.0000
+2026-06-16 07:09:47,367 [INFO]   ICBHI Score (per-cycle): 0.5463
+2026-06-16 07:09:47,396 [INFO] Checkpoint saved: checkpoints\best_model.pth
+2026-06-16 07:09:47,422 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-16 07:09:47,422 [INFO] --- Starting epoch 2/50 ---
+2026-06-16 07:10:13,439 [INFO] Epoch 2 Train Loss: 0.9576
+2026-06-16 07:10:13,439 [INFO] Epoch 2 Validation Loss: 0.9593
+2026-06-16 07:10:13,439 [INFO]   Class normal: Se=0.0051, Sp=0.9958
+2026-06-16 07:10:13,439 [INFO]   Class crackles: Se=0.7088, Sp=0.5168
+2026-06-16 07:10:13,439 [INFO]   Class wheezes: Se=0.4468, Sp=0.5449
+2026-06-16 07:10:13,440 [INFO]   Class both: Se=0.0070, Sp=0.9950
+2026-06-16 07:10:13,440 [INFO]   ICBHI Score (per-cycle): 0.5275
+2026-06-16 07:10:13,440 [INFO] No improvement in ICBHI score for 1 epoch(s).
+2026-06-16 07:10:13,465 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-16 07:10:13,465 [INFO] --- Starting epoch 3/50 ---
+2026-06-16 07:10:40,704 [INFO] Epoch 3 Train Loss: 0.9520
+2026-06-16 07:10:40,704 [INFO] Epoch 3 Validation Loss: 0.9377
+2026-06-16 07:10:40,704 [INFO]   Class normal: Se=0.0000, Sp=0.9975
+2026-06-16 07:10:40,704 [INFO]   Class crackles: Se=0.6133, Sp=0.5999
+2026-06-16 07:10:40,705 [INFO]   Class wheezes: Se=0.5143, Sp=0.4715
+2026-06-16 07:10:40,705 [INFO]   Class both: Se=0.0490, Sp=0.9793
+2026-06-16 07:10:40,705 [INFO]   ICBHI Score (per-cycle): 0.5281
+2026-06-16 07:10:40,705 [INFO] No improvement in ICBHI score for 2 epoch(s).
+2026-06-16 07:10:40,731 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-16 07:10:40,731 [INFO] --- Starting epoch 4/50 ---
+2026-06-16 07:11:07,982 [INFO] Epoch 4 Train Loss: 0.9497
+2026-06-16 07:11:07,982 [INFO] Epoch 4 Validation Loss: 0.9252
+2026-06-16 07:11:07,982 [INFO]   Class normal: Se=0.0405, Sp=0.9575
+2026-06-16 07:11:07,982 [INFO]   Class crackles: Se=0.6179, Sp=0.5980
+2026-06-16 07:11:07,982 [INFO]   Class wheezes: Se=0.4909, Sp=0.5293
+2026-06-16 07:11:07,983 [INFO]   Class both: Se=0.0559, Sp=0.9690
+2026-06-16 07:11:07,983 [INFO]   ICBHI Score (per-cycle): 0.5324
+2026-06-16 07:11:07,983 [INFO] No improvement in ICBHI score for 3 epoch(s).
+2026-06-16 07:11:08,010 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-16 07:11:08,010 [INFO] --- Starting epoch 5/50 ---
+2026-06-16 07:11:35,584 [INFO] Epoch 5 Train Loss: 0.9487
+2026-06-16 07:11:35,584 [INFO] Epoch 5 Validation Loss: 0.9400
+2026-06-16 07:11:35,585 [INFO]   Class normal: Se=0.0253, Sp=0.9728
+2026-06-16 07:11:35,585 [INFO]   Class crackles: Se=0.6471, Sp=0.5909
+2026-06-16 07:11:35,585 [INFO]   Class wheezes: Se=0.4468, Sp=0.5622
+2026-06-16 07:11:35,585 [INFO]   Class both: Se=0.1189, Sp=0.9330
+2026-06-16 07:11:35,585 [INFO]   ICBHI Score (per-cycle): 0.5371
+2026-06-16 07:11:35,585 [INFO] No improvement in ICBHI score for 4 epoch(s).
+2026-06-16 07:11:35,609 [INFO] Checkpoint saved: checkpoints\epoch_5.pth
+2026-06-16 07:11:35,642 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-16 07:11:35,642 [INFO] --- Starting epoch 6/50 ---
+2026-06-16 07:12:02,752 [INFO] Epoch 6 Train Loss: 0.9435
+2026-06-16 07:12:02,752 [INFO] Epoch 6 Validation Loss: 0.9608
+2026-06-16 07:12:02,752 [INFO]   Class normal: Se=0.0108, Sp=0.9915
+2026-06-16 07:12:02,753 [INFO]   Class crackles: Se=0.6934, Sp=0.5648
+2026-06-16 07:12:02,753 [INFO]   Class wheezes: Se=0.4234, Sp=0.5711
+2026-06-16 07:12:02,753 [INFO]   Class both: Se=0.1538, Sp=0.9388
+2026-06-16 07:12:02,753 [INFO]   ICBHI Score (per-cycle): 0.5434
+2026-06-16 07:12:02,753 [INFO] No improvement in ICBHI score for 5 epoch(s).
+2026-06-16 07:12:02,772 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-16 07:12:02,772 [INFO] --- Starting epoch 7/50 ---
+2026-06-16 07:12:30,388 [INFO] Epoch 7 Train Loss: 0.9469
+2026-06-16 07:12:30,388 [INFO] Epoch 7 Validation Loss: 0.9504
+2026-06-16 07:12:30,388 [INFO]   Class normal: Se=0.0355, Sp=0.9847
+2026-06-16 07:12:30,388 [INFO]   Class crackles: Se=0.7381, Sp=0.5254
+2026-06-16 07:12:30,389 [INFO]   Class wheezes: Se=0.4234, Sp=0.5863
+2026-06-16 07:12:30,389 [INFO]   Class both: Se=0.0839, Sp=0.9820
+2026-06-16 07:12:30,390 [INFO]   ICBHI Score (per-cycle): 0.5449
+2026-06-16 07:12:30,390 [INFO] No improvement in ICBHI score for 6 epoch(s).
+2026-06-16 07:12:30,415 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-16 07:12:30,415 [INFO] --- Starting epoch 8/50 ---
+2026-06-16 07:12:58,180 [INFO] Epoch 8 Train Loss: 0.9406
+2026-06-16 07:12:58,180 [INFO] Epoch 8 Validation Loss: 0.9358
+2026-06-16 07:12:58,181 [INFO]   Class normal: Se=0.0133, Sp=0.9762
+2026-06-16 07:12:58,181 [INFO]   Class crackles: Se=0.5948, Sp=0.6360
+2026-06-16 07:12:58,181 [INFO]   Class wheezes: Se=0.4416, Sp=0.5529
+2026-06-16 07:12:58,181 [INFO]   Class both: Se=0.2308, Sp=0.8886
+2026-06-16 07:12:58,181 [INFO]   ICBHI Score (per-cycle): 0.5418
+2026-06-16 07:12:58,181 [INFO] No improvement in ICBHI score for 7 epoch(s).
+2026-06-16 07:12:58,211 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-16 07:12:58,211 [INFO] --- Starting epoch 9/50 ---
+2026-06-16 07:13:36,487 [INFO] Epoch 9 Train Loss: 0.9397
+2026-06-16 07:13:36,487 [INFO] Epoch 9 Validation Loss: 0.9380
+2026-06-16 07:13:36,487 [INFO]   Class normal: Se=0.3616, Sp=0.7732
+2026-06-16 07:13:36,487 [INFO]   Class crackles: Se=0.7072, Sp=0.5496
+2026-06-16 07:13:36,487 [INFO]   Class wheezes: Se=0.0857, Sp=0.8342
+2026-06-16 07:13:36,488 [INFO]   Class both: Se=0.0280, Sp=0.9694
+2026-06-16 07:13:36,488 [INFO]   ICBHI Score (per-cycle): 0.5386
+2026-06-16 07:13:36,489 [INFO] No improvement in ICBHI score for 8 epoch(s).
+2026-06-16 07:13:36,510 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-16 07:13:36,510 [INFO] --- Starting epoch 10/50 ---
+2026-06-16 07:14:03,925 [INFO] Epoch 10 Train Loss: 0.9395
+2026-06-16 07:14:03,926 [INFO] Epoch 10 Validation Loss: 0.9299
+2026-06-16 07:14:03,926 [INFO]   Class normal: Se=0.3129, Sp=0.8199
+2026-06-16 07:14:03,926 [INFO]   Class crackles: Se=0.6703, Sp=0.5876
+2026-06-16 07:14:03,926 [INFO]   Class wheezes: Se=0.1610, Sp=0.7773
+2026-06-16 07:14:03,926 [INFO]   Class both: Se=0.0420, Sp=0.9426
+2026-06-16 07:14:03,926 [INFO]   ICBHI Score (per-cycle): 0.5392
+2026-06-16 07:14:03,926 [INFO] No improvement in ICBHI score for 9 epoch(s).
+2026-06-16 07:14:03,955 [INFO] Checkpoint saved: checkpoints\epoch_10.pth
+2026-06-16 07:14:03,983 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-16 07:14:03,983 [INFO] --- Starting epoch 11/50 ---
+2026-06-16 07:14:31,210 [INFO] Epoch 11 Train Loss: 0.9336
+2026-06-16 07:14:31,210 [INFO] Epoch 11 Validation Loss: 0.9357
+2026-06-16 07:14:31,211 [INFO]   Class normal: Se=0.2248, Sp=0.8292
+2026-06-16 07:14:31,211 [INFO]   Class crackles: Se=0.6610, Sp=0.6051
+2026-06-16 07:14:31,211 [INFO]   Class wheezes: Se=0.2597, Sp=0.6833
+2026-06-16 07:14:31,211 [INFO]   Class both: Se=0.0280, Sp=0.9679
+2026-06-16 07:14:31,211 [INFO]   ICBHI Score (per-cycle): 0.5324
+2026-06-16 07:14:31,211 [INFO] No improvement in ICBHI score for 10 epoch(s).
+2026-06-16 07:14:31,235 [INFO] Checkpoint saved: checkpoints\last_model.pth
+2026-06-16 07:14:31,235 [INFO] Early stopping triggered after 11 epochs with no improvement.
+2026-06-16 07:14:31,235 [INFO] Training completed.
+2026-06-16 07:14:31,324 [INFO] Experiment logged to experiments.jsonl
