@@ -25,6 +25,7 @@
 | 13 | `AttributeError: 'NoneType' object has no attribute 'get'` — training phase passes `None` metrics to `log_metrics` | 🔴 Cross-file | `train.py` → `log_metrics()` |
 | 14 | `preprocessing.py` and `augmentation.py` completely unused by `train.py` — agents created them independently, nobody wired them in | 🔴 Cross-file | `train.py` → `preprocessing.py`, `augmentation.py` |
 | 15 | **Per-file labeling is wrong**: dataset reduced 6,898 annotated cycles to 922 file-level labels, losing 56% of label fidelity. ICBHI challenge (Rocha et al. 2019) evaluates per respiratory cycle, not per file | 🔴 Protocol violation | `icbhi_dataset.py`, `train.py` |
+| 16 | `UnboundLocalError: 'cfg'` — `cfg = config or {}` defined after its first use in validate() | 🔴 Cross-file | `train.py` validate() |
 
 ---
 

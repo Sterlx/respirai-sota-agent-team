@@ -226,6 +226,7 @@ def validate(
     all_preds = []
     all_targets = []
     all_filenames = []
+    cfg = config or {}
 
     with torch.no_grad():
         for batch in tqdm(dataloader, desc="Validation", leave=False):
@@ -263,7 +264,6 @@ def validate(
     all_targets = torch.cat(all_targets).numpy()
 
     # Convert multi-label [crackles, wheezes] → 4-class for ICBHI score
-    cfg = config or {}
     if all_targets.ndim == 2 and all_targets.shape[1] == 2:
         ct = cfg.get("crackles_threshold", 0.5)
         wt = cfg.get("wheezes_threshold", 0.5)
